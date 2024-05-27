@@ -5,7 +5,6 @@ from evaluation import evaluate_results, write_precision_list
 from pathlib import Path
 import torch
 import os
-import numpy as np
 from attack import white_inversion, white_dist_inversion, black_inversion, label_only_inversion
 from argparse import ArgumentParser
 from copy import deepcopy

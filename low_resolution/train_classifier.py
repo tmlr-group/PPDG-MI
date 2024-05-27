@@ -8,7 +8,6 @@ parser.add_argument('--configs', type=str, default='./config/celeba/training_cla
 
 args = parser.parse_args()
 
-
 def main(args, model_name, trainloader, testloader):
     n_classes = args["dataset"]["n_classes"]
     mode = args["dataset"]["mode"]

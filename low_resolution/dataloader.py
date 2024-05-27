@@ -8,7 +8,6 @@ from torch.utils.data import DataLoader
 from torch.nn.modules.loss import _Loss
 from torch.utils.data.sampler import SubsetRandomSampler
 
-
 class ImageFolder(data.Dataset):
     def __init__(self, args, file_path, mode):
         self.args = args

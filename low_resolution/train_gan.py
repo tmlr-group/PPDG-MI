@@ -2,7 +2,6 @@ import engine
 from utils import load_json
 from argparse import  ArgumentParser
 
-
 parser = ArgumentParser(description='Train GAN')
 parser.add_argument('--configs', type=str, default='./config/celeba/training_GAN/specific_gan/celeba.json') 
 parser.add_argument('--mode', type=str, choices=['specific', 'general'], default='specific')

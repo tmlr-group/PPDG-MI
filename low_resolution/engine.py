@@ -7,7 +7,6 @@ from models.generator import Generator
 from models.classify import *
 from torch.utils.data import ConcatDataset, DataLoader
 
-# from tensorboardX import SummaryWriter
 torch.autograd.set_detect_anomaly(True)
 
 

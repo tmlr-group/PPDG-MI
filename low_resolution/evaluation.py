@@ -6,7 +6,6 @@ import csv
 from PIL import Image
 import torchvision.transforms as T
 import torchvision.utils as vutils
-import traceback
 
 from metrics.distance_metrics import DistanceEvaluation
 

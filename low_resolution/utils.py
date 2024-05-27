@@ -346,10 +346,10 @@ def get_attack_model(args, args_json, eval_mode=False):
     return targetnets, E, G, D, n_classes, fea_mean, fea_logvar
 
 
-# BREP-MI utils
 #returns the predicted label on the evaluator model (which requires low2high to increase the input resolution)
 def decision_Evaluator(imgs, model, score=False, target=None, criterion = None):
     return decision(imgs, model, score=score, target=target, criterion = criterion, islow2high = True)
+
 
 # returns the predicted label on the evaluator model    
 def decision(imgs, model, score=False, target=None, criterion = None, islow2high = False):
@@ -370,6 +370,7 @@ def decision(imgs, model, score=False, target=None, criterion = None, islow2high
     else:
         return val_iden 
 
+
 #returns whether a batch of images belong to a target class or not
 #if they belong, 1 is returned, else -1 is returned
 def is_target_class(idens, target, model,score=False, criterion = None):
@@ -381,6 +382,7 @@ def is_target_class(idens, target, model,score=False, criterion = None):
     val_iden[val_iden != target] = -1
     val_iden[val_iden == target] = 1
     return val_iden
+
 
 def gen_initial_points_targeted(batch_size, G, target_model, min_clip, max_clip, z_dim, num_candidates, target_id):
     print(f'Generating initial points for class: {target_id}')

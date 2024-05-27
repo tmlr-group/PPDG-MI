@@ -2,7 +2,6 @@ from copy import deepcopy
 import torch, utils
 import torch.nn as nn
 import torch.nn.functional as F
-# from utils import log_sum_exp, save_tensor_images
 from utils import *
 from torch.autograd import Variable
 import torch.optim as optim
