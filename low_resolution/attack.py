@@ -1,6 +1,5 @@
 from copy import deepcopy
-import torch, os, time, utils
-import numpy as np
+import torch, utils
 import torch.nn as nn
 import torch.nn.functional as F
 # from utils import log_sum_exp, save_tensor_images

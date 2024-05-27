@@ -1,11 +1,9 @@
-import torch.nn.init as init
 import os, models.facenet as facenet, sys
-import json, time, random, torch
+import json, time, torch
 from models import classify
 from models.classify import *
 from models.discri import *
 from models.generator import *
-import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
 import torchvision.utils as tvls
@@ -13,8 +11,6 @@ from torchvision import transforms
 from datetime import datetime
 import dataloader
 from torch.autograd import grad
-from os import listdir
-from os.path import isdir, join
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
