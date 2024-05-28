@@ -1,0 +1,89 @@
+---
+stylegan_model: stylegan2-ada-pytorch/ffhq.pkl
+seed: 42
+dataset: celeba_identities
+
+target_model:
+  architecture: resnet18
+  num_classes: 1000
+  weights: ./checkpoints/target_model/resnet18_celeba/Classifier_0.9128.pth
+
+evaluation_model:
+  architecture: inception
+  num_classes: 1000
+  weights: ./checkpoints/eval_model/inceptionv3_celeba/Classifier_0.9487.pth
+
+
+candidates:
+  num_candidates: 100
+  candidate_search:
+    search_space_size: 500
+    center_crop: 800
+    resize: 224
+    horizontal_flip: true
+    batch_size: 25
+    truncation_psi: 0.5
+    truncation_cutoff: 8
+
+
+attack:
+  num_round: 2
+  batch_size: 20
+  num_epochs: 0
+  targets: 0-100
+  discriminator_loss_weight: 0.0
+  single_w: true
+  clip: false
+  transformations:
+    CenterCrop:
+      size: 800
+    Resize:
+      size: 224
+      antialias: true
+    RandomResizedCrop:
+      size: [ 224, 224 ]
+      scale: [ 0.9, 1.0 ]
+      ratio: [ 1.0, 1.0 ]
+      antialias: true
+
+  optimizer:
+    Adam:
+      lr: 0.005
+      weight_decay: 0
+      betas: [ 0.1, 0.1 ]
+
+
+final_selection:
+  samples_per_target: 100
+  approach: transforms
+  iterations: 100
+
+
+tuneG:
+  num_inv_points: 5
+  lpips_type: 'vgg'
+  # Locality regularization
+  use_locality_regularization: false
+  latent_ball_num_of_samples:  1
+  locality_regularization_interval: 1
+  regulizer_l2_lambda:  0.1
+  regulizer_lpips_lambda:  0.1
+  # Loss
+  pt_lpips_lambda: 1
+  dist_lambda: 1
+  # Steps
+  inv_steps: 300
+  tune_steps: 150
+  # Optimization
+  inv_learning_rate: 0.005
+  tune_learning_rate: 0.0003
+
+
+
+wandb:
+  enable_logging: true
+  wandb_init_args:
+    project: model_inversion_attacks
+    save_code: true
+    name: Attack_CelebA_FFHQ
+
