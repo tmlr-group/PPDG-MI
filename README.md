@@ -1,4 +1,4 @@
-## 1. High-resolution Setting (based on Plug & Play Attack)
+## 1. High-resolution Setting (based on Plug & Play Attacks)
 
 
 ### Setup Environment
