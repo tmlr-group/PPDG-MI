@@ -15,17 +15,17 @@ torch.manual_seed(9)
 parser = ArgumentParser(description='Inversion')
 parser.add_argument('--configs', type=str, default='./config/celeba/attacking/celeba.json')
 parser.add_argument('--exp_name',
-                    default=None,
+                    default="baseline_id0-99",
                     type=str,
                     help='Directory to save output files (default: None)')
-parser.add_argument('--iter_times', type=int, default=1200, help='Description of iter_times')
-parser.add_argument('-N', type=int, default=1, help='Description of N')
-parser.add_argument('--num_candidates', type=int, default=1000, help='Description of num_candidates')
+parser.add_argument('--iterations', type=int, default=1200, help='Description of iterations')
+parser.add_argument('--num_round', type=int, default=1, help='Description of number of round')
+parser.add_argument('--num_candidates', type=int, default=1000, help='Description of number of candidates')
 parser.add_argument('--target_classes', type=str, default='0-100', help='Description of target classes')
-parser.add_argument("-max_episodes", type=int, default=10000)
-parser.add_argument("-max_step", type=int, default=1)
-parser.add_argument("-seed", type=int, default=42)
-parser.add_argument("-alpha", type=float, default=0)
+parser.add_argument("--max_episodes", type=int, default=10000)
+parser.add_argument("--max_step", type=int, default=1)
+parser.add_argument("--seed", type=int, default=42)
+parser.add_argument("--alpha", type=float, default=0)
 
 args = parser.parse_args()
 
