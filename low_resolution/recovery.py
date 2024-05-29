@@ -42,14 +42,14 @@ def init_attack_args(cfg):
         args.clipz = False
         args.num_seeds = 5
 
-    if cfg["attack"]["variant"] == 'L_logit' or cfg["attack"]["variant"] == 'ours':
+    if cfg["attack"]["variant"] == 'L_logit' or cfg["attack"]["variant"] == 'Lomma':
         args.loss = 'logit_loss'
     elif cfg["attack"]["variant"] == 'cs':
         args.loss = 'cs_loss'
     else:
         args.loss = 'cel'
 
-    if cfg["attack"]["variant"] == 'L_aug' or cfg["attack"]["variant"] == 'ours':
+    if cfg["attack"]["variant"] == 'L_aug' or cfg["attack"]["variant"] == 'Lomma':
         args.classid = '0,1,2,3'
     else:
         args.classid = '0'
@@ -297,14 +297,14 @@ if __name__ == "__main__":
                 toogle_grad(D, False)
                 z = gen_initial_points_targeted(batch_dim_for_initial_points,
                                                 G,
-                                                targetnets[0],
+                                                targetnets,
                                                 point_clamp_min,
                                                 point_clamp_max,
                                                 z_dim,
                                                 len(targets_single_id),
                                                 target_id)
                 criterion = nn.CrossEntropyLoss().cuda()
-                final_z, final_targets, time_list = label_only_attack(cfg, criterion, G, targetnets[0], E, z,
+                final_z, final_targets, time_list = label_only_attack(cfg, criterion, G, targetnets, E, z,
                                                                       targets_single_id, target_id,
                                                                       round_num=round_num)
 
@@ -312,7 +312,7 @@ if __name__ == "__main__":
                 z = torch.randn(len(targets_single_id), 100).to(device).float()
                 agent = Agent(state_size=z_dim, action_size=z_dim, random_seed=seed, hidden_size=256,
                               action_prior="uniform")
-                final_z, final_targets, time_list = black_attack(agent, G, targetnets[0], alpha, z,
+                final_z, final_targets, time_list = black_attack(agent, G, targetnets, alpha, z,
                                                                  max_episodes,
                                                                  max_step, targets_single_id,
                                                                  round_num=round_num)
@@ -335,7 +335,7 @@ if __name__ == "__main__":
                 with open(json_path, 'w') as f:
                     json.dump(config, f, indent=8)
 
-                G, D = tune_specific_gan(config, G, D, targetnets[0], final_z[:samples_per_target], epochs=10)
+                G, D = tune_specific_gan(config, G, D, targetnets, final_z[:samples_per_target], epochs=10)
             else:
                 json_path = f"./config/celeba/training_GAN/{mode}_gan/{dataset_name}.json"
                 with open(json_path, 'r') as f:
