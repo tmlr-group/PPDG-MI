@@ -27,7 +27,7 @@ In this repository, we support [CelebA](https://mmlab.ie.cuhk.edu.hk/projects/Ce
 
     .
     ├── data       
-        ├── celeba
+        └── celeba
             ├── img_align_celeba
             ├── identity_CelebA.txt
             ├── list_attr_celeba.txt
@@ -76,21 +76,21 @@ In this repository, we support [CelebA](https://mmlab.ie.cuhk.edu.hk/projects/Ce
 
     .
     ├── datasets       
-    │   ├── celeba
-    │   │   ├── img_align_celeba
-    │   │   └── meta
-    │   │       ├── celeba_target_300ids_label.npy
-    │   │       ├── celeba_target_300ids.npy
-    │   │       ├── fea_target_300ids.npy
-    │   │       ├── ganset.txt
-    │   │       ├── testset.txt
-    │   │       └── trainset.txt
-    │   │
-    │   │
-    │   ├── ffhq
-    │       ├── thumbnails128x128
-    │       └── meta
-    │           └── ganset_ffhq.txt
+        ├── celeba
+        │   ├── img_align_celeba
+        │   └── meta
+        │       ├── celeba_target_300ids_label.npy
+        │       ├── celeba_target_300ids.npy
+        │       ├── fea_target_300ids.npy
+        │       ├── ganset.txt
+        │       ├── testset.txt
+        │       └── trainset.txt
+        │
+        │
+        └── ffhq
+            ├── thumbnails128x128
+            └── meta
+                └── ganset_ffhq.txt
 
 
 ### Prepare Checkpoints for Target and Evaluation Models
