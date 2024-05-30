@@ -26,8 +26,8 @@ NVIDIA provides the following pre-trained models: ```ffhq.pkl, metfaces.pkl, afh
 In this repository, we support [CelebA](https://mmlab.ie.cuhk.edu.hk/projects/CelebA.html) as datasets to train the target models. Please follow the instructions on the websites to download the datasets. Place all datasets in the folder ```data``` and make sure that the following structure is kept:
 
     .
-    ├── data       
-        ├── celeba
+    └── data       
+        └── celeba
             ├── img_align_celeba
             ├── identity_CelebA.txt
             ├── list_attr_celeba.txt
@@ -72,25 +72,25 @@ CUDA_VISIBLE_DEVICES=0  python -W ignore attack_tuneG.py  --iterations=35 --num_
 We conducted all experiments on an Ubuntu 20.04.4 LTS system, equipped with NVIDIA GeForce RTX 3090 GPUs. The software environment included Python 3.7.12, PyTorch 1.13.1, and CUDA 11.6.
 
 ### Prepare Datasets
-In this repository, we support [CelebA](https://mmlab.ie.cuhk.edu.hk/projects/CelebA.html) and [FFHQ](https://drive.google.com/drive/folders/1tg-Ur7d4vk1T8Bn0pPpUSQPxlPGBlGfv) as datasets to train the target models. Please follow the instructions on the websites to download the datasets. Place all datasets in the folder ```data``` and make sure that the following structure is kept:
+In this repository, we support [CelebA](https://mmlab.ie.cuhk.edu.hk/projects/CelebA.html) and [FFHQ](https://drive.google.com/drive/folders/1tg-Ur7d4vk1T8Bn0pPpUSQPxlPGBlGfv) as datasets to train the target models. Please follow the instructions on the websites to download the datasets. Place all datasets in the folder ```datasets``` and make sure that the following structure is kept:
 
     .
-    ├── datasets       
-    │   ├── celeba
-    │   │   ├── img_align_celeba
-    │   │   └── meta
-    │   │       ├── celeba_target_300ids_label.npy
-    │   │       ├── celeba_target_300ids.npy
-    │   │       ├── fea_target_300ids.npy
-    │   │       ├── ganset.txt
-    │   │       ├── testset.txt
-    │   │       └── trainset.txt
-    │   │
-    │   │
-    │   ├── ffhq
-    │       ├── thumbnails128x128
-    │       └── meta
-    │           └── ganset_ffhq.txt
+    └── datasets       
+        ├── celeba
+        │   ├── img_align_celeba
+        │   └── meta
+        │       ├── celeba_target_300ids_label.npy
+        │       ├── celeba_target_300ids.npy
+        │       ├── fea_target_300ids.npy
+        │       ├── ganset.txt
+        │       ├── testset.txt
+        │       └── trainset.txt
+        │
+        │
+        └── ffhq
+            ├── thumbnails128x128
+            └── meta
+                └── ganset_ffhq.txt
 
 
 ### Prepare Checkpoints for Target and Evaluation Models
@@ -108,52 +108,56 @@ Download the model weights for the experiments at this [cloud drive](https://dri
 
 * Baseline GMI
 ```
-CUDA_VISIBLE_DEVICES=0 python -W ignore  recovery.py --configs=./config/celeba/attacking/celeba.json --exp_name=baseline0-99 --num_round=1  --num_candidates=1000 --target_classes='0-100'
+CUDA_VISIBLE_DEVICES=0 python -W ignore  recovery.py --configs=./config/celeba/attacking/celeba.json  --iterations=1200  --exp_name=baseline0-99  --num_round=1  --num_candidates=1000  --target_classes='0-100'
 ```
 
 * PPDG-vallina GMI
 ```
-CUDA_VISIBLE_DEVICES=0 python -W ignore  recovery.py --configs=./config/celeba/attacking/celeba.json --exp_name=PPDG-vallina0-99 --num_round=2  --num_candidates=1000 --target_classes='0-100'
+CUDA_VISIBLE_DEVICES=0 python -W ignore  recovery.py --configs=./config/celeba/attacking/celeba.json  --iterations=600  --exp_name=PPDG-vallina0-99  --num_round=2  --num_candidates=1000  --target_classes='0-100'
 ```
 
 ---
 
 * Baseline KEDMI
 ```
-CUDA_VISIBLE_DEVICES=0 python -W ignore  recovery.py --configs=./config/celeba/attacking/celeba.json --exp_name=baseline0-99 --num_round=1  --num_candidates=1000 --target_classes='0-100'
+CUDA_VISIBLE_DEVICES=0 python -W ignore  recovery.py --configs=./config/celeba/attacking/celeba.json  --iterations=1200  --exp_name=baseline0-99  --num_round=1  --num_candidates=1000  --target_classes='0-100'
 ```
 
 * PPDG-vallina KEDMI
 ```
-CUDA_VISIBLE_DEVICES=0 python -W ignore  recovery.py --configs=./config/celeba/attacking/celeba.json --exp_name=PPDG-vallina0-99 --num_round=2  --num_candidates=1000 --target_classes='0-100'
+CUDA_VISIBLE_DEVICES=0 python -W ignore  recovery.py --configs=./config/celeba/attacking/celeba.json  --iterations=600  --exp_name=PPDG-vallina0-99  --num_round=2  --num_candidates=1000  --target_classes='0-100'
 ```
 
 ---
 
 * Baseline RLB-MI
 ```
-CUDA_VISIBLE_DEVICES=2 python -W ignore  recovery.py --configs=./config/celeba/attacking/celeba.json --exp_name=baseline0-9 --iter_times=10000 --num_round=1  --num_candidates=1000 --target_classes='0-10'
+CUDA_VISIBLE_DEVICES=2 python -W ignore  recovery.py --configs=./config/celeba/attacking/celeba.json  --iterations=10000  --exp_name=baseline0-9  --num_round=1  --num_candidates=1000  --target_classes='0-10'
 ```
 
 * PPDG-vallina (RLB-MI)
 ```
-CUDA_VISIBLE_DEVICES=2 python -W ignore  recovery.py --configs=./config/celeba/attacking/celeba.json --exp_name=PPDG-vallina0-9 --iter_times=10000 --num_round=2  --num_candidates=1000 --target_classes='0-10'
+CUDA_VISIBLE_DEVICES=2 python -W ignore  recovery.py --configs=./config/celeba/attacking/celeba.json  --iterations=5000  --exp_name=PPDG-vallina0-9  --num_round=2  --num_candidates=1000  --target_classes='0-10'
 ```
 
 ---
 
 * Baseline BREP-MI
 ```
-CUDA_VISIBLE_DEVICES=0 python -W ignore  recovery.py --configs=./config/celeba/attacking/celeba.json --exp_name=baseline0-9 --num_round=1  --num_candidates=1000 --target_classes='0-10'
+CUDA_VISIBLE_DEVICES=0 python -W ignore  recovery.py --configs=./config/celeba/attacking/celeba.json  --iterations=16.3  --exp_name=baseline0-9  --num_round=1  --num_candidates=100  --target_classes='0-10'
 ```
 
 * PPDG-vallina (BREP-MI)
 ```
-CUDA_VISIBLE_DEVICES=0 python -W ignore  recovery.py --configs=./config/celeba/attacking/celeba.json --exp_name=PPDG-vallina0-9 --num_round=2  --num_candidates=1000 --target_classes='0-10'
+CUDA_VISIBLE_DEVICES=0 python -W ignore  recovery.py --configs=./config/celeba/attacking/celeba.json  --iterations=7.0  --exp_name=PPDG-vallina0-9  --num_round=2  --num_candidates=100  --target_classes='0-10'
 ```
 
 ---
 ### Acknowledgements
 We are grateful for the following works:
+- Plug & Play Attacks: Towards Robust and Flexible Model Inversion Attacks: https://github.com/LukasStruppek/Plug-and-Play-Attacks
+- The Secret Revealer: Generative Model-Inversion Attacks Against Deep Neural Networks: https://github.com/AI-secure/GMI-Attack
 - Knowledge-Enriched-Distributional-Model-Inversion-Attacks: https://github.com/SCccc21/Knowledge-Enriched-DMI
 - Re-thinking Model Inversion Attacks Against Deep Neural Networks: https://github.com/sutd-visual-computing-group/Re-thinking_MI
+- Label-Only Model Inversion Attacks via Boundary Repulsion: https://github.com/m-kahla/Label-Only-Model-Inversion-Attacks-via-Boundary-Repulsion
+- Reinforcement Learning-Based Black-Box Model Inversion Attacks: https://github.com/HanGyojin/RLB-MI

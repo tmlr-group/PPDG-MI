@@ -55,13 +55,13 @@ def init_attack_args(cfg):
         args.classid = '0'
 
 
-def white_attack(target_model, z, G, D, E, targets_single_id, used_loss, iter_times=2400, round_num=0):
+def white_attack(target_model, z, G, D, E, targets_single_id, used_loss, iterations=2400, round_num=0):
     save_dir = f"{prefix}/{current_time}/{target_id:03d}"
     Path(save_dir).mkdir(parents=True, exist_ok=True)
 
-    final_z_path = f"{prefix}/final_z/baseline_{target_id:03d}"
+    final_z_path = f"{prefix}/final_z/baseline_{target_id:03d}.pt"
     if round_num == 0 and os.path.exists(final_z_path):
-        print(f"Load final_z from: {final_z_path}")
+        print(f"Load opt_z from: {final_z_path}")
         mi_time = 0
         all_final_w = torch.load(final_z_path)
         num_vectors_per_category = 1000
@@ -69,7 +69,7 @@ def white_attack(target_model, z, G, D, E, targets_single_id, used_loss, iter_ti
         opt_z = all_final_w[id * num_vectors_per_category:(id + 1) * num_vectors_per_category]
 
     else:
-        print("No final_z loading")
+        print("No opt_z loading")
         mi_start_time = time.time()
         if args.improved_flag:
             opt_z = white_dist_inversion(G, D, target_model, E, targets_single_id[:batch_size], batch_size,
@@ -77,7 +77,7 @@ def white_attack(target_model, z, G, D, E, targets_single_id, used_loss, iter_ti
                                          used_loss=used_loss,
                                          fea_mean=fea_mean,
                                          fea_logvar=fea_logvar,
-                                         iter_times=iter_times,
+                                         iter_times=iterations,
                                          improved=True,
                                          lam=cfg["attack"]["lam"])
         else:
@@ -85,7 +85,7 @@ def white_attack(target_model, z, G, D, E, targets_single_id, used_loss, iter_ti
                                     used_loss=used_loss,
                                     fea_mean=fea_mean,
                                     fea_logvar=fea_logvar,
-                                    iter_times=iter_times,
+                                    iter_times=iterations,
                                     lam=cfg["attack"]["lam"])
 
         mi_time = time.time() - mi_start_time
@@ -109,7 +109,7 @@ def white_attack(target_model, z, G, D, E, targets_single_id, used_loss, iter_ti
         final_z_path = f"{prefix}/final_z/round{round_num}_{target_id:03d}.pt"
     torch.save(final_z.detach(), final_z_path)
 
-    print(f'Selected a total of {final_z.shape[0]} final images out of {opt_z.shape}',
+    print(f'Selected a total of {final_z.shape[0]} final images out of {opt_z.shape[0]}',
           f'of target classes {set(final_targets.cpu().tolist())}.')
 
     # Compute attack accuracy with evaluation model on all generated samples
@@ -123,9 +123,9 @@ def black_attack(agent, G, target_model, alpha, z, max_episodes, max_step, targe
     save_dir = f"{prefix}/{current_time}/{target_id:03d}"
     Path(save_dir).mkdir(parents=True, exist_ok=True)
 
-    final_z_path = f"{prefix}/final_z/baseline_{target_id:03d}"
+    final_z_path = f"{prefix}/final_z/baseline_{target_id:03d}.pt"
     if round_num == 0 and os.path.exists(final_z_path):
-        print(f"Load final_z from: {final_z_path}")
+        print(f"Load opt_z from: {final_z_path}")
         mi_time = 0
         all_final_w = torch.load(final_z_path)
         num_vectors_per_category = 1000
@@ -133,7 +133,7 @@ def black_attack(agent, G, target_model, alpha, z, max_episodes, max_step, targe
         opt_z = all_final_w[id * num_vectors_per_category:(id + 1) * num_vectors_per_category]
 
     else:
-        print("No final_z Loading")
+        print("No opt_z loading")
         mi_start_time = time.time()
         opt_z = black_inversion(agent, G, target_model, alpha, z, batch_size, max_episodes, max_step,
                                 targets_single_id[0], model_name)
@@ -158,7 +158,7 @@ def black_attack(agent, G, target_model, alpha, z, max_episodes, max_step, targe
         final_z_path = f"{prefix}/final_z/round{round_num}_{target_id:03d}.pt"
     torch.save(final_z.detach(), final_z_path)
 
-    print(f'Selected a total of {final_z.shape[0]} final images out of {opt_z.shape}',
+    print(f'Selected a total of {final_z.shape[0]} final images out of {opt_z.shape[0]}',
           f'of target classes {set(final_targets.cpu().tolist())}.')
 
     # Compute attack accuracy with evaluation model on all generated samples
@@ -168,13 +168,13 @@ def black_attack(agent, G, target_model, alpha, z, max_episodes, max_step, targe
     return final_z, final_targets, [mi_time, selection_time]
 
 
-def label_only_attack(attack_params, criterion, G, target_model, E, z, targets_single_id, target_id, round_num=0):
+def label_only_attack(attack_params, criterion, G, target_model, E, z, targets_single_id, target_id, max_radius, round_num=0):
     save_dir = f"{prefix}/{current_time}/{target_id:03d}"
     Path(save_dir).mkdir(parents=True, exist_ok=True)
 
-    final_z_path = f"{prefix}/final_z/baseline_{target_id:03d}"
+    final_z_path = f"{prefix}/final_z/baseline_{target_id:03d}.pt"
     if round_num == 0 and os.path.exists(final_z_path):
-        print(f"Load final_z from: {final_z_path}")
+        print(f"Load opt_z from: {final_z_path}")
         mi_time = 0
         all_final_w = torch.load(final_z_path)
         num_vectors_per_category = 1000
@@ -182,9 +182,9 @@ def label_only_attack(attack_params, criterion, G, target_model, E, z, targets_s
         opt_z = all_final_w[id * num_vectors_per_category:(id + 1) * num_vectors_per_category]
 
     else:
-        print("No Loading")
+        print("No opt_z loading")
         mi_start_time = time.time()
-        opt_z = label_only_inversion(z, target_id, targets_single_id, G, target_model, E, attack_params, criterion,
+        opt_z = label_only_inversion(z, target_id, targets_single_id, G, target_model, E, attack_params, criterion, max_radius,
                                      save_dir)
         mi_time = time.time() - mi_start_time
 
@@ -207,7 +207,7 @@ def label_only_attack(attack_params, criterion, G, target_model, E, z, targets_s
         final_z_path = f"{prefix}/final_z/round{round_num}_{target_id:03d}.pt"
     torch.save(final_z.detach(), final_z_path)
 
-    print(f'Selected a total of {final_z.shape[0]} final images out of {opt_z.shape}',
+    print(f'Selected a total of {final_z.shape[0]} final images out of {opt_z.shape[0]}',
           f'of target classes {set(final_targets.cpu().tolist())}.')
 
     # Compute attack accuracy with evaluation model on all generated samples
@@ -237,7 +237,6 @@ if __name__ == "__main__":
 
     os.makedirs(prefix, exist_ok=True)
     os.makedirs(f"{prefix}/final_z", exist_ok=True)
-    print(f"{prefix}/final_z")
     os.makedirs(args.log_path, exist_ok=True)
 
     train_file = cfg['dataset']['train_file_path']
@@ -266,30 +265,27 @@ if __name__ == "__main__":
     max_step = cfg['RLB_MI']['max_step']
     seed = cfg['RLB_MI']['seed']
     alpha = cfg['RLB_MI']['alpha']
-    n_target = cfg['train']['Nclass']
-    max_episodes = args.iter_times
+    max_episodes = args.iterations
 
     z_dim = cfg['BREP_MI']['z_dim']
     batch_dim_for_initial_points = cfg['BREP_MI']['batch_dim_for_initial_points']
-    targeted_attack = cfg['BREP_MI']['targeted_attack']
-    iden_range_min = cfg['BREP_MI']['iden_range_min']
-    iden_range_max = cfg['BREP_MI']['iden_range_max']
     point_clamp_min = cfg['BREP_MI']['point_clamp_min']
     point_clamp_max = cfg['BREP_MI']['point_clamp_max']
+    max_radius = args.iterations
 
     if args.improved_flag:
         mode = "specific"
     else:
         mode = "general"
 
-    iter_times = args.iter_times
-    N = args.N
+    iterations = args.iterations
+    num_round = args.num_round
 
     for target_id in sorted(list(set(targets.tolist()))):
         G = deepcopy(original_G)
         D = deepcopy(original_D)
-        for round_num in range(N):
-            print(f"Target class: [{target_id}] round number: [{round_num}]")
+        for round in range(num_round):
+            print(f"Target class: [{target_id}] round number: [{round}]")
             targets_single_id = targets[torch.where(targets == target_id)[0]].to(device)
 
             if attack_method == "brep":
@@ -303,26 +299,28 @@ if __name__ == "__main__":
                                                 z_dim,
                                                 len(targets_single_id),
                                                 target_id)
+
                 criterion = nn.CrossEntropyLoss().cuda()
                 final_z, final_targets, time_list = label_only_attack(cfg, criterion, G, targetnets, E, z,
-                                                                      targets_single_id, target_id,
-                                                                      round_num=round_num)
+                                                                      targets_single_id, target_id, max_radius,
+                                                                      round_num=round)
 
             elif attack_method == 'rlb':
                 z = torch.randn(len(targets_single_id), 100).to(device).float()
                 agent = Agent(state_size=z_dim, action_size=z_dim, random_seed=seed, hidden_size=256,
                               action_prior="uniform")
+
                 final_z, final_targets, time_list = black_attack(agent, G, targetnets, alpha, z,
                                                                  max_episodes,
                                                                  max_step, targets_single_id,
-                                                                 round_num=round_num)
+                                                                 round_num=round)
 
             else:
                 z = torch.randn(len(targets_single_id), 100).to(device).float()
                 final_z, final_targets, time_list = white_attack(targetnets, z, G, D, E, targets_single_id,
                                                                  used_loss=args.loss,
-                                                                 iter_times=iter_times,
-                                                                 round_num=round_num)
+                                                                 iterations=iterations,
+                                                                 round_num=round)
 
             print("GAN Fine-tuning")
 
@@ -351,6 +349,6 @@ if __name__ == "__main__":
                               [target_id, time_list[0], time_list[1], tune_time]]
 
             _ = write_precision_list(
-                f'{prefix}/{current_time}/time_cost_r{round_num + 1}',
+                f'{prefix}/{current_time}/time_cost_r{round + 1}',
                 time_cost_list
             )

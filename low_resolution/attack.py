@@ -353,8 +353,7 @@ def gen_points_on_sphere(current_point, points_count, sphere_radius):
     return sphere_points, perturbation_direction
 
 
-def label_only_inversion(z, target_id, targets_single_id, G, target_model, E, attack_params, criterion,
-                          current_iden_dir):
+def label_only_inversion(z, target_id, targets_single_id, G, target_model, E, attack_params, criterion, max_radius, current_iden_dir):
     final_z = []
     start = time.time()
 
@@ -458,7 +457,7 @@ def label_only_inversion(z, target_id, targets_single_id, G, target_model, E, at
                 losses.append(current_loss.item())
                 current_iter += 1
 
-            if current_sphere_radius > 7.0:
+            if current_sphere_radius > max_radius:
                 print("break!")
                 break
             
