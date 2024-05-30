@@ -102,7 +102,7 @@ Download the model weights for the experiments at this [cloud drive](https://dri
 
 - `method`: Select the attack method. Options are: `gmi`, `kedmi`, `brep` and `rlb`.
 
-- `variant`: Select the attack variant. Options are: `baseline`, `L_aug`, `L_logit` and `Lomma`.
+- `variant`: Select the attack variant. Options are: `baseline` and `L_logit`.
 
 ---
 

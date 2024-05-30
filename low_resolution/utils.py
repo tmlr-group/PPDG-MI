@@ -343,7 +343,7 @@ def get_attack_model(args, args_json, eval_mode=False):
     G.eval()
     D.eval()
 
-    return targetnets, E, G, D, n_classes, fea_mean, fea_logvar
+    return targetnets[0], E, G, D, n_classes, fea_mean, fea_logvar
 
 
 #returns the predicted label on the evaluator model (which requires low2high to increase the input resolution)
