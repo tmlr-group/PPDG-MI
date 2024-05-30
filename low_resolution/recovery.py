@@ -267,7 +267,7 @@ if __name__ == "__main__":
     batch_dim_for_initial_points = cfg['BREP_MI']['batch_dim_for_initial_points']
     point_clamp_min = cfg['BREP_MI']['point_clamp_min']
     point_clamp_max = cfg['BREP_MI']['point_clamp_max']
-    max_radius = args.iterations
+    max_radius = args.iterations / 100
 
     if args.improved_flag:
         mode = "specific"

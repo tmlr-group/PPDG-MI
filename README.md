@@ -144,12 +144,12 @@ CUDA_VISIBLE_DEVICES=2 python -W ignore  recovery.py --configs=./config/celeba/a
 
 * Baseline BREP-MI
 ```
-CUDA_VISIBLE_DEVICES=0 python -W ignore  recovery.py --configs=./config/celeba/attacking/celeba.json  --exp_name=baseline0-9  --iterations=16.3  --num_round=1  --num_candidates=100  --target_classes='0-10'
+CUDA_VISIBLE_DEVICES=0 python -W ignore  recovery.py --configs=./config/celeba/attacking/celeba.json  --exp_name=baseline0-9  --iterations=1630  --num_round=1  --num_candidates=100  --target_classes='0-10'
 ```
 
 * PPDG-vallina BREP-MI
 ```
-CUDA_VISIBLE_DEVICES=0 python -W ignore  recovery.py --configs=./config/celeba/attacking/celeba.json  --exp_name=PPDG-vallina0-9  --iterations=7.0  --num_round=2  --num_candidates=100  --target_classes='0-10'
+CUDA_VISIBLE_DEVICES=0 python -W ignore  recovery.py --configs=./config/celeba/attacking/celeba.json  --exp_name=PPDG-vallina0-9  --iterations=700  --num_round=2  --num_candidates=100  --target_classes='0-10'
 ```
 
 ---
