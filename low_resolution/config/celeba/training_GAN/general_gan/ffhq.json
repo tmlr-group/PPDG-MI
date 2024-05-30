@@ -3,7 +3,7 @@
     
     "dataset":{
         "gan_file_path": "./datasets/ffhq/meta/ganset_ffhq.txt",
-        "model_name": "train_gan - first stage",
+        "model_name": "train_gan_first_stage",
         "name": "ffhq",
         "img_gan_path": "./datasets/ffhq/thumbnails128x128",
         "n_classes":1000

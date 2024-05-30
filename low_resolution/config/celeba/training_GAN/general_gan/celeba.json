@@ -3,7 +3,7 @@
     
     "dataset":{
         "gan_file_path": "./datasets/celeba/meta/ganset.txt",
-        "model_name": "train_gan - first stage",
+        "model_name": "train_gan_first_stage",
         "name": "celeba",
         "img_gan_path": "./datasets/celeba/img_align_celeba",
         "n_classes":1000
