@@ -398,7 +398,6 @@ def gen_initial_points_targeted(batch_size, G, target_model, min_clip, max_clip,
 
             for i in range(target_classes.shape[0]):
                 current_label = target_classes[i].item()
-                # if current_label in initial_points or current_label < iden_range_min or current_label > iden_range_max:
                 if current_label != target_id:
                     continue
 
