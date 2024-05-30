@@ -9,6 +9,7 @@ import math
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
+
 def reg_loss(featureT, fea_mean, fea_logvar):
     fea_reg = reparameterize(fea_mean, fea_logvar)
     fea_reg = fea_mean.repeat(featureT.shape[0], 1)
@@ -116,10 +117,11 @@ def iden_loss(T, fake, iden, used_loss, criterion, fea_mean=0, fea_logvar=0, lam
     Iden_Loss = Iden_Loss / len(T) + loss_reg
     return Iden_Loss
 
+
 def white_dist_inversion(G, D, T, E, iden, batch_size, num_candidates, lr=2e-2, momentum=0.9, lamda=100,
-                          iter_times=1500, clip_range=1.0, improved=False, num_seeds=5,
-                          used_loss='cel', prefix='', random_seed=0, save_img_dir='', fea_mean=0,
-                          fea_logvar=0, lam=0.1, clipz=False):
+                         iter_times=1500, clip_range=1.0, improved=False, num_seeds=5,
+                         used_loss='cel', prefix='', random_seed=0, save_img_dir='', fea_mean=0,
+                         fea_logvar=0, lam=0.1, clipz=False):
     iden = iden.view(-1).long().to(device)
     criterion = find_criterion(used_loss)
     bs = iden.shape[0]
@@ -193,9 +195,9 @@ def white_dist_inversion(G, D, T, E, iden, batch_size, num_candidates, lr=2e-2, 
 
 
 def white_inversion(G, D, T, E, batch_size, z_init, targets, lr=2e-2, momentum=0.9, lamda=100,
-                     iter_times=1500, clip_range=1, improved=False,
-                     used_loss='cel', prefix='', save_img_dir='', fea_mean=0,
-                     fea_logvar=0, lam=0.1, istart=0, same_z=''):
+                    iter_times=1500, clip_range=1, improved=False,
+                    used_loss='cel', prefix='', save_img_dir='', fea_mean=0,
+                    fea_logvar=0, lam=0.1, istart=0, same_z=''):
     criterion = find_criterion(used_loss)
 
     G.eval()
@@ -269,10 +271,10 @@ def white_inversion(G, D, T, E, batch_size, z_init, targets, lr=2e-2, momentum=0
                     max_conf = confidences.max().detach().cpu().item()  # Get maximum confidence
                     print(f'mean_conf={mean_conf:.4f} ({min_conf:.4f}, {max_conf:.4f})\n')
 
-
         z_opt.append(z.detach())
 
     return torch.concat(z_opt, dim=0)
+
 
 def black_inversion(agent, G, target_model, alpha, z_init, batch_size, max_episodes, max_step, label, model_name):
     print("Target Label : " + str(label.item()))
@@ -325,7 +327,7 @@ def black_inversion(agent, G, target_model, alpha, z_init, batch_size, max_episo
             end = time.time()
             print(f"Current episode: {i_episode} Time: {end - start}:2f")
             start = end
-            
+
             opt_img = G(state).detach()
             _, opt_output = target_model(opt_img)
             probabilities = F.softmax(opt_output, dim=-1)
@@ -353,7 +355,8 @@ def gen_points_on_sphere(current_point, points_count, sphere_radius):
     return sphere_points, perturbation_direction
 
 
-def label_only_inversion(z, target_id, targets_single_id, G, target_model, E, attack_params, criterion, max_radius, current_iden_dir):
+def label_only_inversion(z, target_id, targets_single_id, G, target_model, E, attack_params, criterion, max_radius,
+                         current_iden_dir):
     final_z = []
     start = time.time()
 
@@ -401,15 +404,15 @@ def label_only_inversion(z, target_id, targets_single_id, G, target_model, E, at
                     'sphere_points_count']:  # == attack_params['sphere_points_count']:
                     # save_tensor_images(G(current_point.unsqueeze(0))[0].detach(),
                     save_tensor_images(G(current_point.unsqueeze(0))[0].detach(),
-                                       os.path.join(current_iden_dir, "z{}_last_img_of_radius_{:.4f}_iter_{}.png".format(
-                                           i, current_sphere_radius, current_iter)))
+                                       os.path.join(current_iden_dir,
+                                                    "z{}_last_img_of_radius_{:.4f}_iter_{}.png".format(
+                                                        i, current_sphere_radius, current_iter)))
                     # update the current sphere radius
                     current_sphere_radius = current_sphere_radius * attack_params['BREP_MI']['sphere_expansion_coeff']
 
                     log_file.write("new sphere radius at iter: {} ".format(current_iter))
                     new_radius = True
                     last_iter_when_radius_changed = current_iter
-
 
                 # get the update direction, which is the mean of all points outside boundary if 'repulsion_only' is used. Otherwise it is the mean of all points * their classification (1,-1)
                 if attack_params['BREP_MI']['repulsion_only'] == "True":
@@ -458,9 +461,9 @@ def label_only_inversion(z, target_id, targets_single_id, G, target_model, E, at
                 current_iter += 1
 
             if current_sphere_radius > max_radius:
-                print("break!")
+                print("Reach maximum radius, break!")
                 break
-            
+
         log_file.close()
         final_z.append(current_point.unsqueeze(0))
     return torch.cat(final_z)
