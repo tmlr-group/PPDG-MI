@@ -4,6 +4,10 @@
 ### Setup Environment
 We conducted all experiments on an Oracle Linux Server 8.9, utilizing NVIDIA Ampere A100-80G GPUs. The software environment included Python 3.9.18, PyTorch 1.13.1, and CUDA 11.7.
 
+To create the conda environment with all the required dependencies, run:
+```
+conda env create -f high_resolution_environment.yml
+```
 
 ### Setup StyleGAN2
 For using our attacks with StyleGAN2, clone the official [StyleGAN2-ADA-Pytorch](https://github.com/NVlabs/stylegan2-ada-pytorch) repo into the project's root folder and remove its git specific folders and files. 
@@ -70,6 +74,11 @@ CUDA_VISIBLE_DEVICES=0  python -W ignore attack_tuneG.py  --iterations=35 --num_
 
 ### Setup Environment
 We conducted all experiments on an Ubuntu 20.04.4 LTS system, equipped with NVIDIA GeForce RTX 3090 GPUs. The software environment included Python 3.7.12, PyTorch 1.13.1, and CUDA 11.6.
+
+To create the conda environment with all the required dependencies, run:
+```
+conda env create -f low_resolution_environment.yml
+```
 
 ### Prepare Datasets
 In this repository, we support [CelebA](https://mmlab.ie.cuhk.edu.hk/projects/CelebA.html) and [FFHQ](https://drive.google.com/drive/folders/1tg-Ur7d4vk1T8Bn0pPpUSQPxlPGBlGfv) as datasets to train the target models. Please follow the instructions on the websites to download the datasets. Place all datasets in the folder ```datasets``` and make sure that the following structure is kept:
