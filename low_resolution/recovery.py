@@ -251,13 +251,15 @@ if __name__ == "__main__":
     current_time = current_time + '_' + args.exp_name if args.exp_name is not None else current_time
     dataset_name = cfg['dataset']['name']
     model_name = cfg['dataset']['model_name']
+    z_dim = cfg['attack']['z_dim']
 
+    # RLB-MI parameters
     max_step = cfg['RLB_MI']['max_step']
     seed = cfg['RLB_MI']['seed']
     alpha = cfg['RLB_MI']['alpha']
     max_episodes = args.iterations
 
-    z_dim = cfg['BREP_MI']['z_dim']
+    # BREP-MI parameters
     batch_dim_for_initial_points = cfg['BREP_MI']['batch_dim_for_initial_points']
     point_clamp_min = cfg['BREP_MI']['point_clamp_min']
     point_clamp_max = cfg['BREP_MI']['point_clamp_max']

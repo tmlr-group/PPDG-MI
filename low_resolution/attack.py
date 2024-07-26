@@ -323,17 +323,17 @@ def black_inversion(agent, G, target_model, alpha, z_init, batch_size, max_episo
                 agent.step(state, action, reward, next_state, done, t)
                 state = next_state
 
-        if i_episode % 1000 == 0:
-            end = time.time()
-            print(f"Current episode: {i_episode} Time: {end - start}:2f")
-            start = end
+            if i_episode % 1000 == 0:
+                end = time.time()
+                print(f"Current episode: {i_episode} Time: {end - start}:2f")
+                start = end
 
-            opt_img = G(state).detach()
-            _, opt_output = target_model(opt_img)
-            probabilities = F.softmax(opt_output, dim=-1)
-            target_probabilities = probabilities[torch.arange(probabilities.size(0)), y]
-            confidence = float(torch.mean(target_probabilities))
-            print(f"confidence: {confidence:2f}")
+                opt_img = G(state).detach()
+                _, opt_output = target_model(opt_img)
+                probabilities = F.softmax(opt_output, dim=-1)
+                target_probabilities = probabilities[torch.arange(probabilities.size(0)), y]
+                confidence = float(torch.mean(target_probabilities))
+                print(f"confidence: {confidence:2f}")
 
         z_opt.append(torch.tensor(state))
     return torch.cat(z_opt, dim=0)

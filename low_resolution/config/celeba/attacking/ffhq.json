@@ -31,7 +31,8 @@
         "lr": 0.02,
         "lam": 1.0,
         "same_z":"",
-        "eval_metric": "fid, acc, knn"
+        "eval_metric": "fid, acc, knn",
+        "z_dim": 100
     },
 
     
@@ -39,8 +40,7 @@
         "max_episodes": 10000,
         "max_step": 1,
         "seed": 42,
-        "alpha": 0,
-        "z_dim": 100
+        "alpha": 0
     },
 
     "BREP_MI":{
@@ -52,7 +52,6 @@
         "point_clamp_min" : -1.5,
         "point_clamp_max" : 1.5,
         "max_iters_at_radius_before_terminate" : 1000,
-        "z_dim" : 100,
         "num_targets" : 300,
         "batch_dim_for_initial_points" : 256,
         "repulsion_only" : "True"
