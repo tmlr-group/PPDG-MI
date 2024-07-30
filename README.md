@@ -109,56 +109,56 @@ Download the model weights for the experiments at this [cloud drive](https://dri
 
 #### Important Arguments:
 
-- `method`: Select the attack method. Options are: `gmi`, `kedmi`, `brep` and `rlb`.
+- `method`: Select the attack method. Options are: `gmi`, `kedmi`, `brep`and `rlb`.
 
-- `variant`: Select the attack variant. Options are: `baseline` and `L_logit`.
+- `variant`: Select the attack variant. Options are: `baseline`, `L_aug`, `L_logit` and `LOMMA`.
 
 ---
 
 * Baseline GMI
 ```
-CUDA_VISIBLE_DEVICES=0 python -W ignore  recovery.py --configs=./config/celeba/attacking/celeba.json  --exp_name=baseline0-99  --iterations=2400  --num_round=1  --num_candidates=1000  --target_classes='0-100'
+CUDA_VISIBLE_DEVICES=0 python -W ignore  recovery.py --configs=./config/celeba/attacking/celeba.json  --exp_name=GMI_id0-99  --iterations=2400  --num_round=1  --num_candidates=1000  --target_classes='0-100'
 ```
 
 * PPDG-vallina GMI
 ```
-CUDA_VISIBLE_DEVICES=0 python -W ignore  recovery.py --configs=./config/celeba/attacking/celeba.json  --exp_name=PPDG-vallina0-99  --iterations=1200  --num_round=2  --num_candidates=1000  --target_classes='0-100'
+CUDA_VISIBLE_DEVICES=0 python -W ignore  recovery.py --configs=./config/celeba/attacking/celeba.json  --exp_name=PPDG-vallina_id0-99  --iterations=1200  --num_round=2  --num_candidates=1000  --target_classes='0-100'
 ```
 
 ---
 
 * Baseline KEDMI
 ```
-CUDA_VISIBLE_DEVICES=0 python -W ignore  recovery.py --configs=./config/celeba/attacking/celeba.json  --exp_name=baseline0-99  --iterations=2400  --num_round=1  --num_candidates=1000  --target_classes='0-100'
+CUDA_VISIBLE_DEVICES=0 python -W ignore  recovery.py --configs=./config/celeba/attacking/celeba.json  --exp_name=KEDMI_id0-9  --iterations=2400  --num_round=1  --num_candidates=1000  --target_classes='0-100'
 ```
 
 * PPDG-vallina KEDMI
 ```
-CUDA_VISIBLE_DEVICES=0 python -W ignore  recovery.py --configs=./config/celeba/attacking/celeba.json  --exp_name=PPDG-vallina0-99  --iterations=1200  --num_round=2  --num_candidates=1000  --target_classes='0-100'
+CUDA_VISIBLE_DEVICES=0 python -W ignore  recovery.py --configs=./config/celeba/attacking/celeba.json  --exp_name=PPDG-vallina_id0-9  --iterations=1200  --num_round=2  --num_candidates=1000  --target_classes='0-100'
 ```
 
 ---
 
-* Baseline RLB-MI
+* Baseline RLBMI
 ```
-CUDA_VISIBLE_DEVICES=2 python -W ignore  recovery.py --configs=./config/celeba/attacking/celeba.json  --exp_name=baseline0-9  --iterations=10000  --num_round=1  --num_candidates=1000  --target_classes='0-10'
+CUDA_VISIBLE_DEVICES=0 python -W ignore  recovery.py --configs=./config/celeba/attacking/celeba.json  --exp_name=RLBMI_id0-9  --iterations=10000  --num_round=1  --num_candidates=1000  --target_classes='0-10'
 ```
 
 * PPDG-vallina RLB-MI
 ```
-CUDA_VISIBLE_DEVICES=2 python -W ignore  recovery.py --configs=./config/celeba/attacking/celeba.json  --exp_name=PPDG-vallina0-9  --iterations=5000  --num_round=2  --num_candidates=1000  --target_classes='0-10'
+CUDA_VISIBLE_DEVICES=0 python -W ignore  recovery.py --configs=./config/celeba/attacking/celeba.json  --exp_name=PPDG-vallina_id0-9  --iterations=5000  --num_round=2  --num_candidates=1000  --target_classes='0-10'
 ```
 
 ---
 
 * Baseline BREP-MI
 ```
-CUDA_VISIBLE_DEVICES=0 python -W ignore  recovery.py --configs=./config/celeba/attacking/celeba.json  --exp_name=baseline0-9  --iterations=1630  --num_round=1  --num_candidates=100  --target_classes='0-10'
+CUDA_VISIBLE_DEVICES=0 python -W ignore  recovery.py --configs=./config/celeba/attacking/celeba.json  --exp_name=BREPMI_id0-9  --iterations=1630  --num_round=1  --num_candidates=100  --target_classes='0-10'
 ```
 
 * PPDG-vallina BREP-MI
 ```
-CUDA_VISIBLE_DEVICES=0 python -W ignore  recovery.py --configs=./config/celeba/attacking/celeba.json  --exp_name=PPDG-vallina0-9  --iterations=700  --num_round=2  --num_candidates=100  --target_classes='0-10'
+CUDA_VISIBLE_DEVICES=0 python -W ignore  recovery.py --configs=./config/celeba/attacking/celeba.json  --exp_name=PPDG-vallina_id0-9  --iterations=700  --num_round=2  --num_candidates=100  --target_classes='0-10'
 ```
 
 ---

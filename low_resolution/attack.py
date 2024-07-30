@@ -325,9 +325,10 @@ def black_inversion(agent, G, target_model, alpha, z_init, batch_size, max_episo
 
             if i_episode % 1000 == 0:
                 end = time.time()
-                print(f"Current episode: {i_episode} Time: {end - start}:2f")
+                print(f"Current episode: {i_episode} Time: {(end - start):2f}")
                 start = end
 
+                state = torch.from_numpy(state).float()
                 opt_img = G(state).detach()
                 _, opt_output = target_model(opt_img)
                 probabilities = F.softmax(opt_output, dim=-1)
@@ -356,7 +357,7 @@ def gen_points_on_sphere(current_point, points_count, sphere_radius):
 
 
 def label_only_inversion(z, target_id, targets_single_id, G, target_model, E, attack_params, criterion, max_radius,
-                         current_iden_dir):
+                         current_iden_dir, round_num):
     final_z = []
     start = time.time()
 
@@ -374,7 +375,14 @@ def label_only_inversion(z, target_id, targets_single_id, G, target_model, E, at
 
         losses = []
 
-        current_sphere_radius = attack_params['BREP_MI']['current_sphere_radius']
+        if round_num == 0:
+            # default hyper-parameters used in BREPMI. PPDG uses these parameters for baseline attack.
+            current_sphere_radius = 2.0
+            sphere_expansion_coeff = 1.3
+        else:
+            # parameters used in our official work. PPDG uses these parameters for vanilla attack.
+            current_sphere_radius = attack_params['BREP_MI']['current_sphere_radius']
+            sphere_expansion_coeff = attack_params['BREP_MI']['sphere_expansion_coeff']
 
         last_success_on_eval = False
         # Outer loop handle all sphere radii
@@ -403,12 +411,13 @@ def label_only_inversion(z, target_id, targets_single_id, G, target_model, E, at
                 if new_points_classification.sum() > 0.75 * attack_params['BREP_MI'][
                     'sphere_points_count']:  # == attack_params['sphere_points_count']:
                     # save_tensor_images(G(current_point.unsqueeze(0))[0].detach(),
-                    save_tensor_images(G(current_point.unsqueeze(0))[0].detach(),
-                                       os.path.join(current_iden_dir,
-                                                    "z{}_last_img_of_radius_{:.4f}_iter_{}.png".format(
-                                                        i, current_sphere_radius, current_iter)))
+
+                    # save_tensor_images(G(current_point.unsqueeze(0))[0].detach(),
+                    #                    os.path.join(current_iden_dir,
+                    #                                 "z{}_last_img_of_radius_{:.4f}_iter_{}.png".format(
+                    #                                     i, current_sphere_radius, current_iter)))
                     # update the current sphere radius
-                    current_sphere_radius = current_sphere_radius * attack_params['BREP_MI']['sphere_expansion_coeff']
+                    current_sphere_radius = current_sphere_radius * sphere_expansion_coeff
 
                     log_file.write("new sphere radius at iter: {} ".format(current_iter))
                     new_radius = True
@@ -438,9 +447,9 @@ def label_only_inversion(z, target_id, targets_single_id, G, target_model, E, at
                 _, current_loss = decision(current_img, target_model, score=True, criterion=criterion,
                                            target=targets_single_id)
 
-                if current_iter % 50 == 0 or (current_iter < 200 and current_iter % 20 == 0):
-                    save_tensor_images(current_img[0].detach(),
-                                       os.path.join(current_iden_dir, "iter{}.png".format(current_iter)))
+                # if current_iter % 50 == 0 or (current_iter < 200 and current_iter % 20 == 0):
+                #     save_tensor_images(current_img[0].detach(),
+                #                        os.path.join(current_iden_dir, "iter{}.png".format(current_iter)))
 
                 eval_decision = decision_Evaluator(current_img, E)
 

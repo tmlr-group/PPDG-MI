@@ -29,7 +29,7 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 
 def init_attack_args(cfg):
-    if cfg["attack"]["method"] == 'kedmi':
+    if cfg["attack"]["method"] =='kedmi':
         args.improved_flag = True
         args.clipz = True
         args.num_seeds = 1
@@ -38,12 +38,15 @@ def init_attack_args(cfg):
         args.clipz = False
         args.num_seeds = 5
 
-    if cfg["attack"]["variant"] == 'L_logit':
+    if cfg["attack"]["variant"] == 'L_logit' or cfg["attack"]["variant"] == 'LOMMA':
         args.loss = 'logit_loss'
     else:
         args.loss = 'cel'
 
-    args.classid = '0'
+    if cfg["attack"]["variant"] == 'L_aug' or cfg["attack"]["variant"] == 'LOMMA':
+        args.classid = '0,1,2,3'
+    else:
+        args.classid = '0'
 
 
 def white_attack(target_model, z, G, D, E, targets_single_id, used_loss, iterations=2400, round_num=0):
@@ -55,7 +58,7 @@ def white_attack(target_model, z, G, D, E, targets_single_id, used_loss, iterati
         print(f"Load opt_z from: {final_z_path}")
         mi_time = 0
         all_final_w = torch.load(final_z_path)
-        num_vectors_per_category = 1000
+        num_vectors_per_category = num_candidates
         id = int(targets_single_id[0])
         opt_z = all_final_w[id * num_vectors_per_category:(id + 1) * num_vectors_per_category]
 
@@ -119,7 +122,7 @@ def black_attack(agent, G, target_model, alpha, z, max_episodes, max_step, targe
         print(f"Load opt_z from: {final_z_path}")
         mi_time = 0
         all_final_w = torch.load(final_z_path)
-        num_vectors_per_category = 1000
+        num_vectors_per_category = num_candidates
         id = int(targets_single_id[0])
         opt_z = all_final_w[id * num_vectors_per_category:(id + 1) * num_vectors_per_category]
 
@@ -144,7 +147,8 @@ def black_attack(agent, G, target_model, alpha, z, max_episodes, max_step, targe
     selection_time = time.time() - start_time
 
     if round_num == 0:
-        final_z_path = f"{prefix}/final_z/baseline_{target_id:03d}.pt"
+        # final_z_path = f"{prefix}/final_z/baseline_{target_id:03d}.pt"
+        final_z_path = f"{save_dir}/baseline_{target_id:03d}.pt"
     else:
         final_z_path = f"{prefix}/final_z/round{round_num}_{target_id:03d}.pt"
     torch.save(final_z.detach(), final_z_path)
@@ -168,8 +172,9 @@ def label_only_attack(attack_params, criterion, G, target_model, E, z, targets_s
         print(f"Load opt_z from: {final_z_path}")
         mi_time = 0
         all_final_w = torch.load(final_z_path)
-        num_vectors_per_category = 1000
-        id = int(targets_single_id[0])
+        num_vectors_per_category = num_candidates
+        # id = int(targets_single_id[0])
+        id= 0
         opt_z = all_final_w[id * num_vectors_per_category:(id + 1) * num_vectors_per_category]
     else:
         print("No opt_z loading")
@@ -212,6 +217,7 @@ if __name__ == "__main__":
     init_attack_args(cfg=cfg)
 
     attack_method = cfg["attack"]["method"]
+
     # Save dir
     if args.improved_flag == True:
         prefix = os.path.join(cfg["root_path"], "kedmi")
@@ -234,7 +240,7 @@ if __name__ == "__main__":
     trainset, trainloader = utils.init_dataloader(cfg, train_file, mode="train")
 
     # Load models
-    targetnet, E, G, D, n_classes, fea_mean, fea_logvar = get_attack_model(args, cfg)
+    targetnets, E, G, D, n_classes, fea_mean, fea_logvar = get_attack_model(args, cfg)
     original_G = deepcopy(G)
     original_D = deepcopy(D)
 
@@ -251,15 +257,13 @@ if __name__ == "__main__":
     current_time = current_time + '_' + args.exp_name if args.exp_name is not None else current_time
     dataset_name = cfg['dataset']['name']
     model_name = cfg['dataset']['model_name']
-    z_dim = cfg['attack']['z_dim']
 
-    # RLB-MI parameters
     max_step = cfg['RLB_MI']['max_step']
     seed = cfg['RLB_MI']['seed']
     alpha = cfg['RLB_MI']['alpha']
     max_episodes = args.iterations
 
-    # BREP-MI parameters
+    z_dim = cfg['BREP_MI']['z_dim']
     batch_dim_for_initial_points = cfg['BREP_MI']['batch_dim_for_initial_points']
     point_clamp_min = cfg['BREP_MI']['point_clamp_min']
     point_clamp_max = cfg['BREP_MI']['point_clamp_max']
@@ -283,9 +287,10 @@ if __name__ == "__main__":
             if attack_method == "brep":
                 toogle_grad(G, False)
                 toogle_grad(D, False)
+
                 z = gen_initial_points_targeted(batch_dim_for_initial_points,
                                                 G,
-                                                targetnet,
+                                                targetnets[0],
                                                 point_clamp_min,
                                                 point_clamp_max,
                                                 z_dim,
@@ -293,7 +298,7 @@ if __name__ == "__main__":
                                                 target_id)
 
                 criterion = nn.CrossEntropyLoss().cuda()
-                final_z, final_targets, time_list = label_only_attack(cfg, criterion, G, targetnet, E, z,
+                final_z, final_targets, time_list = label_only_attack(cfg, criterion, G, targetnets[0], E, z,
                                                                       targets_single_id, target_id, max_radius,
                                                                       round_num=round)
 
@@ -302,45 +307,52 @@ if __name__ == "__main__":
                 agent = Agent(state_size=z_dim, action_size=z_dim, random_seed=seed, hidden_size=256,
                               action_prior="uniform")
 
-                final_z, final_targets, time_list = black_attack(agent, G, targetnet, alpha, z,
+                final_z, final_targets, time_list = black_attack(agent, G, targetnets[0], alpha, z,
                                                                  max_episodes,
                                                                  max_step, targets_single_id,
                                                                  round_num=round)
 
             else:
                 z = torch.randn(len(targets_single_id), 100).to(device).float()
-                final_z, final_targets, time_list = white_attack(targetnet, z, G, D, E, targets_single_id,
+                final_z, final_targets, time_list = white_attack(targetnets, z, G, D, E, targets_single_id,
                                                                  used_loss=args.loss,
                                                                  iterations=iterations,
                                                                  round_num=round)
 
-            print("GAN Fine-tuning")
+            if round < num_round-1 :
+                print("GAN Fine-tuning")
 
-            start_time = time.time()
-            if args.improved_flag:
-                json_path = f"./config/celeba/training_GAN/{mode}_gan/{dataset_name}.json"
-                with open(json_path, 'r') as f:
-                    config = json.load(f)
-                config["VGG16"]["epochs"] = 10
-                with open(json_path, 'w') as f:
-                    json.dump(config, f, indent=8)
+                start_time = time.time()
+                if args.improved_flag:
+                    json_path = f"./config/celeba/training_GAN/{mode}_gan/{dataset_name}.json"
+                    with open(json_path, 'r') as f:
+                        config = json.load(f)
+                    config["VGG16"]["epochs"] = 10
+                    with open(json_path, 'w') as f:
+                        json.dump(config, f, indent=8)
 
-                G, D = tune_specific_gan(config, G, D, targetnet, final_z[:samples_per_target], epochs=10)
-            else:
-                json_path = f"./config/celeba/training_GAN/{mode}_gan/{dataset_name}.json"
-                with open(json_path, 'r') as f:
-                    config = json.load(f)
-                config["train_gan_first_stage"]["epochs"] = 10
-                with open(json_path, 'w') as f:
-                    json.dump(config, f, indent=8)
+                    G, D = tune_specific_gan(config, G, D, targetnets, final_z[:samples_per_target], epochs=10)
+                else:
+                    json_path = f"./config/celeba/training_GAN/{mode}_gan/{dataset_name}.json"
+                    with open(json_path, 'r') as f:
+                        config = json.load(f)
+                    config["train_gan_first_stage"]["epochs"] = 10
+                    with open(json_path, 'w') as f:
+                        json.dump(config, f, indent=8)
 
-                G, D = tune_general_gan(config, G, D, final_z[:samples_per_target], epochs=10)
-            tune_time = time.time() - start_time
+                    if attack_method == 'brep':
+                        if dataset_name == "celeba":
+                            G, D = tune_general_gan(config, G, D, final_z[:10], epochs=10)
+                        elif dataset_name == "ffhq":
+                            G, D = tune_general_gan(config, G, D, final_z[:20], epochs=10)
+                    else:
+                        G, D = tune_general_gan(config, G, D, final_z[:samples_per_target], epochs=10)
+                tune_time = time.time() - start_time
 
-            time_cost_list = [['target', 'mi', 'selection', 'tune_time'],
-                              [target_id, time_list[0], time_list[1], tune_time]]
+                time_cost_list = [['target', 'mi', 'selection', 'tune_time'],
+                                [target_id, time_list[0], time_list[1], tune_time]]
 
-            _ = write_precision_list(
-                f'{prefix}/{current_time}/time_cost_r{round + 1}',
-                time_cost_list
-            )
+                _ = write_precision_list(
+                    f'{prefix}/{current_time}/time_cost_r{round + 1}',
+                    time_cost_list
+                )
