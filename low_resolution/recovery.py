@@ -180,7 +180,7 @@ def label_only_attack(attack_params, criterion, G, target_model, E, z, targets_s
         print("No opt_z loading")
         mi_start_time = time.time()
         opt_z = label_only_inversion(z, target_id, targets_single_id, G, target_model, E, attack_params, criterion, max_radius,
-                                     save_dir)
+                                     save_dir, round_num)
         mi_time = time.time() - mi_start_time
 
     start_time = time.time()
