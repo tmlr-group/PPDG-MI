@@ -331,7 +331,7 @@ if __name__ == "__main__":
                     with open(json_path, 'w') as f:
                         json.dump(config, f, indent=8)
 
-                    G, D = tune_specific_gan(config, G, D, targetnets, final_z[:samples_per_target], epochs=10)
+                    G, D = tune_specific_gan(config, G, D, targetnets[0], final_z[:samples_per_target], epochs=10)
                 else:
                     json_path = f"./config/celeba/training_GAN/{mode}_gan/{dataset_name}.json"
                     with open(json_path, 'r') as f:
