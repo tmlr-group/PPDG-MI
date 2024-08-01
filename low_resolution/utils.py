@@ -10,9 +10,11 @@ import torchvision.utils as tvls
 from torchvision import transforms
 from datetime import datetime
 import dataloader
+from torch.utils.data import ConcatDataset, TensorDataset, DataLoader
 from torch.autograd import grad
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
 
 def toogle_grad(model, flag=True):
     for p in model.parameters():
@@ -140,6 +142,8 @@ def get_model(attack_name, classes):
         T = classify.VGG16(classes)
     elif attack_name.startswith("IR50"):
         T = classify.IR50(classes)
+    elif attack_name.startswith("VGG16_HSIC"):
+        T = classify.IR50(classes)
     elif attack_name.startswith("IR152"):
         T = classify.IR152(classes)
     elif attack_name.startswith("FaceNet64"):
@@ -152,26 +156,82 @@ def get_model(attack_name, classes):
     return T
 
 
-def get_augmodel(model_name, nclass, path_T=None, dataset='celeba'):
-    if model_name == "VGG16":
-        model = VGG16(nclass)
-    elif model_name == "FaceNet":
-        model = FaceNet(nclass)
-    elif model_name == "FaceNet64":
-        model = FaceNet64(nclass)
-    elif model_name == "IR152":
-        model = IR152(nclass)
-    elif model_name == "efficientnet_b0":
-        model = classify.EfficientNet_b0(nclass)
-    elif model_name == "efficientnet_b1":
-        model = classify.EfficientNet_b1(nclass)
-    elif model_name == "efficientnet_b2":
-        model = classify.EfficientNet_b2(nclass)
+# def get_augmodel(model_name, nclass, path_T=None, dataset='celeba'):
+#     if model_name == "VGG16":
+#         model = VGG16(nclass)
+#     elif model_name == "VGG16_HSIC":
+#         model = VGG16_HSIC(nclass)
+#     elif model_name == "FaceNet":
+#         model = FaceNet(nclass)
+#     elif model_name == "FaceNet64":
+#         model = FaceNet64(nclass)
+#     elif model_name == "IR152":
+#         model = IR152(nclass)
+#     elif model_name == "efficientnet_b0":
+#         model = classify.EfficientNet_b0(nclass)
+#     elif model_name == "efficientnet_b1":
+#         model = classify.EfficientNet_b1(nclass)
+#     elif model_name == "efficientnet_b2":
+#         model = classify.EfficientNet_b2(nclass)
 
+#     model = torch.nn.DataParallel(model).cuda()
+#     if path_T is not None:
+#         ckp_T = torch.load(path_T)
+#         t=model.load_state_dict(ckp_T['state_dict'], strict=True)
+#     return model
+
+from collections import OrderedDict
+
+
+def fix_state_dict_keys(state_dict):
+    """
+    Adjusts the keys in the state dictionary. If keys don't start with 'module.',
+    it will add 'module.' to the start to match with DataParallel module keys.
+    """
+    new_state_dict = OrderedDict()
+    for k, v in state_dict.items():
+        # This prefix adjustment assumes the model is being wrapped with DataParallel
+        new_key = k if k.startswith('module.') else 'module.' + k
+        new_state_dict[new_key] = v
+    return new_state_dict
+
+
+def get_augmodel(model_name, nclass, path_T=None, dataset='celeba'):
+    # Mapping of model names to model constructors
+    model_classes = {
+        "VGG16": VGG16,
+        "VGG16_HSIC": VGG16_HSIC,
+        "FaceNet": FaceNet,
+        "FaceNet64": FaceNet64,
+        "IR152": IR152,
+        "efficientnet_b0": classify.EfficientNet_b0,
+        "efficientnet_b1": classify.EfficientNet_b1,
+        "efficientnet_b2": classify.EfficientNet_b2,
+    }
+
+    # Instantiate the model
+    if model_name in model_classes:
+        model = model_classes[model_name](nclass)
+    else:
+        raise ValueError(f"Model name {model_name} is not supported.")
+
+    # Wrap the model with DataParallel and move to GPU
     model = torch.nn.DataParallel(model).cuda()
+
+    # Load checkpoint if provided
     if path_T is not None:
         ckp_T = torch.load(path_T)
-        t=model.load_state_dict(ckp_T['state_dict'], strict=True)
+        try:
+            # Attempt to fix state dict keys
+            fixed_state_dict = fix_state_dict_keys(ckp_T['state_dict'])
+            # Load the state dict into the model
+            model.load_state_dict(fixed_state_dict, strict=True)
+        except RuntimeError as e:
+            # Handle errors in state dict loading
+            print(f"Failed to load state dictionary: {e}")
+            # Optionally, you might want to raise the error or handle it differently
+            raise e
+
     return model
 
 
@@ -305,9 +365,10 @@ def get_attack_model(args, args_json, eval_mode=False):
         else:
             targetnets.append(model)
 
-        # p_reg 
+        # p_reg
         if args.loss == 'logit_loss':
-            if model_types_[id_] == "IR152" or model_types_[id_] == "VGG16" or model_types_[id_] == "FaceNet64":
+            if model_types_[id_] == "IR152" or model_types_[id_] == "VGG16" or model_types_[id_] == "FaceNet64" or \
+                    model_types_[id_] == "VGG16_HSIC":
                 # target model
                 p_reg = os.path.join(args_json["dataset"]["p_reg_path"], '{}_{}_p_reg.pt'.format(dataset, model_types_[
                     id_]))  # './p_reg/{}_{}_p_reg.pt'.format(dataset,model_types_[id_])
@@ -343,16 +404,16 @@ def get_attack_model(args, args_json, eval_mode=False):
     G.eval()
     D.eval()
 
-    return targetnets[0], E, G, D, n_classes, fea_mean, fea_logvar
+    return targetnets, E, G, D, n_classes, fea_mean, fea_logvar
 
 
-#returns the predicted label on the evaluator model (which requires low2high to increase the input resolution)
-def decision_Evaluator(imgs, model, score=False, target=None, criterion = None):
-    return decision(imgs, model, score=score, target=target, criterion = criterion, islow2high = True)
+# returns the predicted label on the evaluator model (which requires low2high to increase the input resolution)
+def decision_Evaluator(imgs, model, score=False, target=None, criterion=None):
+    return decision(imgs, model, score=score, target=target, criterion=criterion, islow2high=True)
 
 
-# returns the predicted label on the evaluator model    
-def decision(imgs, model, score=False, target=None, criterion = None, islow2high = False):
+# returns the predicted label on the evaluator model
+def decision(imgs, model, score=False, target=None, criterion=None, islow2high=False):
     if islow2high:
         imgs = low2high(imgs)
 
@@ -366,19 +427,20 @@ def decision(imgs, model, score=False, target=None, criterion = None, islow2high
         single_target_index = target[0].long()
         target = torch.tensor([single_target_index]).cuda()
 
-        return val_iden,criterion(T_out, target)
+        return val_iden, criterion(T_out, target)
     else:
-        return val_iden 
+        return val_iden
+
+    # returns whether a batch of images belong to a target class or not
 
 
-#returns whether a batch of images belong to a target class or not
-#if they belong, 1 is returned, else -1 is returned
-def is_target_class(idens, target, model,score=False, criterion = None):
+# if they belong, 1 is returned, else -1 is returned
+def is_target_class(idens, target, model, score=False, criterion=None):
     if score:
         target_class_tensor = torch.tensor([target]).cuda()
-        val_iden, score = decision(idens,model, score, target_class_tensor, criterion = criterion )
+        val_iden, score = decision(idens, model, score, target_class_tensor, criterion=criterion)
     else:
-        val_iden = decision(idens,model)
+        val_iden = decision(idens, model)
     val_iden[val_iden != target] = -1
     val_iden[val_iden == target] = 1
     return val_iden
@@ -417,6 +479,7 @@ def gen_initial_points_targeted(batch_size, G, target_model, min_clip, max_clip,
 
     return initial_points
 
+
 def scores_by_transform(imgs,
                         targets,
                         target_model,
@@ -436,6 +499,7 @@ def scores_by_transform(imgs,
         score = score / iterations
     return score
 
+
 def perform_final_selection(z,
                             G,
                             targets,
@@ -450,18 +514,18 @@ def perform_final_selection(z,
     target_model.eval()
 
     # if approach.strip() == 'transforms':
-    transforms = T.Compose([
-        # T.RandomResizedCrop(size=(224, 224),
+    transformation = transforms.Compose([
+        # transformation.RandomResizedCrop(size=(224, 224),
         #                     scale=(0.5, 0.9),  # (0.9, 1.0), #(0.5, 0.9),
         #                     ratio=(0.8, 1.2),  # (1.0, 1.0), #(0.8, 1.2),
         #                     antialias=True),
 
-        # T.RandomResizedCrop(size=(224, 224),
+        # transformation.RandomResizedCrop(size=(224, 224),
         #                     scale=(0.8, 1.0),
         #                     ratio=(1.0, 1.0),
         #                     antialias=True),
-        T.RandomHorizontalFlip(0.5)
-        # T.RandomHorizontalFlip(0)
+        transforms.RandomHorizontalFlip(0.5)
+        # transformation.RandomHorizontalFlip(0)
     ])
 
     for step, target in enumerate(target_values):
@@ -475,7 +539,7 @@ def perform_final_selection(z,
             imgs, t = imgs.to(device), t.to(device)
 
             scores.append(
-                scores_by_transform(imgs, t, target_model, transforms))
+                scores_by_transform(imgs, t, target_model, transformation))
         scores = torch.cat(scores, dim=0).cpu()
         indices = torch.sort(scores, descending=True).indices
         selected_indices = indices[:samples_per_target]
