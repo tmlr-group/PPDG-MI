@@ -147,8 +147,7 @@ def black_attack(agent, G, target_model, alpha, z, max_episodes, max_step, targe
     selection_time = time.time() - start_time
 
     if round_num == 0:
-        # final_z_path = f"{prefix}/final_z/baseline_{target_id:03d}.pt"
-        final_z_path = f"{save_dir}/baseline_{target_id:03d}.pt"
+        final_z_path = f"{prefix}/final_z/baseline_{target_id:03d}.pt"
     else:
         final_z_path = f"{prefix}/final_z/round{round_num}_{target_id:03d}.pt"
     torch.save(final_z.detach(), final_z_path)

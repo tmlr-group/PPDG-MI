@@ -27,7 +27,6 @@
     "attack":{
         "method": "gmi",
         "variant": "L_logit",
-        "iters_mi": 1200,
         "lr": 0.02,
         "lam": 1.0,
         "same_z":"",
@@ -35,7 +34,6 @@
         "z_dim": 100
     },
 
-    
     "RLB_MI":{
         "max_episodes": 10000,
         "max_step": 1,
