@@ -356,7 +356,7 @@ def gen_points_on_sphere(current_point, points_count, sphere_radius):
     return sphere_points, perturbation_direction
 
 
-def label_only_inversion(z, target_id, targets_single_id, G, target_model, E, attack_params, criterion, max_radius,
+def label_only_inversion(z, target_id, targets_single_id, G, target_model, E, attack_params, criterion, max_iters_at_radius_before_terminate,
                          current_iden_dir, round_num):
     final_z = []
     start = time.time()
@@ -386,12 +386,10 @@ def label_only_inversion(z, target_id, targets_single_id, G, target_model, E, at
 
         last_success_on_eval = False
         # Outer loop handle all sphere radii
-        while current_iter - last_iter_when_radius_changed < attack_params['BREP_MI'][
-            'max_iters_at_radius_before_terminate']:
+        while current_iter - last_iter_when_radius_changed < max_iters_at_radius_before_terminate:
 
             # inner loop handle one single sphere radius
-            while current_iter - last_iter_when_radius_changed < attack_params['BREP_MI'][
-                'max_iters_at_radius_before_terminate']:
+            while current_iter - last_iter_when_radius_changed < max_iters_at_radius_before_terminate:
 
                 new_radius = False
 
@@ -469,9 +467,14 @@ def label_only_inversion(z, target_id, targets_single_id, G, target_model, E, at
                 losses.append(current_loss.item())
                 current_iter += 1
 
-            if current_sphere_radius > max_radius:
-                print("Reach maximum radius, break!")
-                break
+            if round_num == 0:  # baseline setting
+                if current_sphere_radius > 16.30:
+                    print("Reach maximum radius, break!")
+                    break
+            else:               # PPDG setting
+                if current_sphere_radius > 8.91:
+                    print("Reach maximum radius, break!")
+                    break
 
         log_file.close()
         final_z.append(current_point.unsqueeze(0))

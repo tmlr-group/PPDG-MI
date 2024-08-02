@@ -162,7 +162,7 @@ def black_attack(agent, G, target_model, alpha, z, max_episodes, max_step, targe
     return final_z, final_targets, [mi_time, selection_time]
 
 
-def label_only_attack(attack_params, criterion, G, target_model, E, z, targets_single_id, target_id, max_radius, round_num=0):
+def label_only_attack(attack_params, criterion, G, target_model, E, z, targets_single_id, target_id, max_iters_at_radius_before_terminate, round_num=0):
     save_dir = f"{prefix}/{current_time}/{target_id:03d}"
     Path(save_dir).mkdir(parents=True, exist_ok=True)
 
@@ -178,7 +178,7 @@ def label_only_attack(attack_params, criterion, G, target_model, E, z, targets_s
     else:
         print("No opt_z loading")
         mi_start_time = time.time()
-        opt_z = label_only_inversion(z, target_id, targets_single_id, G, target_model, E, attack_params, criterion, max_radius,
+        opt_z = label_only_inversion(z, target_id, targets_single_id, G, target_model, E, attack_params, criterion, max_iters_at_radius_before_terminate,
                                      save_dir, round_num)
         mi_time = time.time() - mi_start_time
 
@@ -266,7 +266,7 @@ if __name__ == "__main__":
     batch_dim_for_initial_points = cfg['BREP_MI']['batch_dim_for_initial_points']
     point_clamp_min = cfg['BREP_MI']['point_clamp_min']
     point_clamp_max = cfg['BREP_MI']['point_clamp_max']
-    max_radius = args.iterations / 100
+    max_iters_at_radius_before_terminate = args.iterations
 
     if args.improved_flag:
         mode = "specific"
@@ -298,7 +298,7 @@ if __name__ == "__main__":
 
                 criterion = nn.CrossEntropyLoss().cuda()
                 final_z, final_targets, time_list = label_only_attack(cfg, criterion, G, targetnets[0], E, z,
-                                                                      targets_single_id, target_id, max_radius,
+                                                                      targets_single_id, target_id, max_iters_at_radius_before_terminate,
                                                                       round_num=round)
 
             elif attack_method == 'rlb':
