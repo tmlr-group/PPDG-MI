@@ -107,58 +107,40 @@ Download the model weights for the experiments at this [cloud drive](https://dri
 
 ### Perform Attacks
 
-#### Important Arguments:
+#### Configuration Parameters:
+- Modify the configuration in 
+  - `./config/celeba/attacking/celeba.json` if the target model is trained on CelebA.
+  - `./config/celeba/attacking/ffhq.json` if the target model is trained on FFHQ.
 
-- `method`: Select the attack method. Options are: `gmi`, `kedmi`, `brep`and `rlb`.
+#### Key Configuration Parameters:
+- **`method`:** Select the attack method. Options are: `gmi`, `kedmi`, `brep`, and `rlb`.
+- **`variant`** (used with `method=gmi/kedmi`): Select the attack variant. Options are: `baseline`, `L_aug`, `L_logit`, and `LOMMA`.
 
-- `variant`: Select the attack variant. Options are: `baseline`, `L_aug`, `L_logit` and `LOMMA`.
-
----
-
-* Baseline GMI
-```
-CUDA_VISIBLE_DEVICES=0 python -W ignore  recovery.py --configs=./config/celeba/attacking/celeba.json  --exp_name=GMI_id0-99  --iterations=2400  --num_round=1  --num_candidates=1000  --target_classes='0-100'
-```
-
-* PPDG-vallina GMI
-```
-CUDA_VISIBLE_DEVICES=0 python -W ignore  recovery.py --configs=./config/celeba/attacking/celeba.json  --exp_name=PPDG-vallina_id0-99  --iterations=1200  --num_round=2  --num_candidates=1000  --target_classes='0-100'
-```
-
----
-
-* Baseline KEDMI
-```
-CUDA_VISIBLE_DEVICES=0 python -W ignore  recovery.py --configs=./config/celeba/attacking/celeba.json  --exp_name=KEDMI_id0-9  --iterations=2400  --num_round=1  --num_candidates=1000  --target_classes='0-100'
-```
-
-* PPDG-vallina KEDMI
-```
-CUDA_VISIBLE_DEVICES=0 python -W ignore  recovery.py --configs=./config/celeba/attacking/celeba.json  --exp_name=PPDG-vallina_id0-9  --iterations=1200  --num_round=2  --num_candidates=1000  --target_classes='0-100'
-```
+#### Iteration Settings:
+- For **GMI / KEDMI / LOM (GMI) / LOM (KEDMI) / LOMMA (GMI) / LOMMA (KEDMI)**:
+  - Baseline: `iterations=2400`
+  - PPDG-vanilla: `iterations=1200`
+  
+- For **RLB-MI**:
+  - Baseline: `iterations=10000`
+  - PPDG-vanilla: `iterations=5000`
+  
+- For **BREP-MI**:
+  - Baseline: `iterations=1000`
+  - PPDG-vanilla: `iterations=500`
 
 ---
 
-* Baseline RLBMI
+#### LOM (GMI) as an example:
+Set `method` as `gmi` and `variant` as `L_logit`, and then run the following:
+* Baseline Attack
 ```
-CUDA_VISIBLE_DEVICES=0 python -W ignore  recovery.py --configs=./config/celeba/attacking/celeba.json  --exp_name=RLBMI_id0-9  --iterations=10000  --num_round=1  --num_candidates=1000  --target_classes='0-10'
-```
-
-* PPDG-vallina RLB-MI
-```
-CUDA_VISIBLE_DEVICES=0 python -W ignore  recovery.py --configs=./config/celeba/attacking/celeba.json  --exp_name=PPDG-vallina_id0-9  --iterations=5000  --num_round=2  --num_candidates=1000  --target_classes='0-10'
+CUDA_VISIBLE_DEVICES=0 python -W ignore  recovery.py --configs=./config/celeba/attacking/celeba.json  --exp_name=LOM_GMI_id0-99  --iterations=2400  --num_round=1  --num_candidates=1000  --target_classes='0-100'
 ```
 
----
-
-* Baseline BREP-MI
+* PPDG-vanilla
 ```
-CUDA_VISIBLE_DEVICES=0 python -W ignore  recovery.py --configs=./config/celeba/attacking/celeba.json  --exp_name=BREPMI_id0-9  --iterations=1630  --num_round=1  --num_candidates=100  --target_classes='0-10'
-```
-
-* PPDG-vallina BREP-MI
-```
-CUDA_VISIBLE_DEVICES=0 python -W ignore  recovery.py --configs=./config/celeba/attacking/celeba.json  --exp_name=PPDG-vallina_id0-9  --iterations=700  --num_round=2  --num_candidates=100  --target_classes='0-10'
+CUDA_VISIBLE_DEVICES=0 python -W ignore  recovery.py --configs=./config/celeba/attacking/celeba.json  --exp_name=PPDG-vanilla_id0-99  --iterations=1200  --num_round=2  --num_candidates=1000  --target_classes='0-100'
 ```
 
 ---

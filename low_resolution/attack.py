@@ -118,7 +118,7 @@ def iden_loss(T, fake, iden, used_loss, criterion, fea_mean=0, fea_logvar=0, lam
     return Iden_Loss
 
 
-def white_dist_inversion(G, D, T, E, iden, batch_size, num_candidates, lr=2e-2, momentum=0.9, lamda=100,
+def KED_inversion(G, D, T, E, iden, batch_size, num_candidates, lr=2e-2, momentum=0.9, lamda=100,
                          iter_times=1500, clip_range=1.0, improved=False, num_seeds=5,
                          used_loss='cel', prefix='', random_seed=0, save_img_dir='', fea_mean=0,
                          fea_logvar=0, lam=0.1, clipz=False):
@@ -194,7 +194,7 @@ def white_dist_inversion(G, D, T, E, iden, batch_size, num_candidates, lr=2e-2, 
     return reparameterize_batch(mu, log_var, num_candidates)
 
 
-def white_inversion(G, D, T, E, batch_size, z_init, targets, lr=2e-2, momentum=0.9, lamda=100,
+def GMI_inversion(G, D, T, E, batch_size, z_init, targets, lr=2e-2, momentum=0.9, lamda=100,
                     iter_times=1500, clip_range=1, improved=False,
                     used_loss='cel', prefix='', save_img_dir='', fea_mean=0,
                     fea_logvar=0, lam=0.1, istart=0, same_z=''):
@@ -276,7 +276,7 @@ def white_inversion(G, D, T, E, batch_size, z_init, targets, lr=2e-2, momentum=0
     return torch.concat(z_opt, dim=0)
 
 
-def black_inversion(agent, G, target_model, alpha, z_init, batch_size, max_episodes, max_step, label, model_name):
+def RLB_inversion(agent, G, target_model, alpha, z_init, max_episodes, max_step, label):
     print("Target Label : " + str(label.item()))
     z_opt = []
     for i in range(z_init.shape[0]):
@@ -356,16 +356,12 @@ def gen_points_on_sphere(current_point, points_count, sphere_radius):
     return sphere_points, perturbation_direction
 
 
-def label_only_inversion(z, target_id, targets_single_id, G, target_model, E, attack_params, criterion, max_iters_at_radius_before_terminate,
+def BREP_inversion(z, target_id, targets_single_id, G, target_model, E, attack_params, criterion, max_iters_at_radius_before_terminate,
                          current_iden_dir, round_num):
     final_z = []
     start = time.time()
 
     for i in range(len(z)):
-        end = time.time()
-        print(f'Optimizing target class {target_id} ({i + 1}/{len(z)}) Time: {(end - start):2f}')
-        start = end
-
         log_file = open(os.path.join(current_iden_dir, 'train_log'), 'w')
         log_file.write("{} of target class: {}".format(i + 1, target_id))
 
@@ -376,11 +372,11 @@ def label_only_inversion(z, target_id, targets_single_id, G, target_model, E, at
         losses = []
 
         if round_num == 0:
-            # default hyper-parameters used in BREPMI. PPDG uses these parameters for baseline attack.
+            # default hyper-parameters used in BREPMI. These parameters are used for baseline attack.
             current_sphere_radius = 2.0
             sphere_expansion_coeff = 1.3
         else:
-            # parameters used in our official work. PPDG uses these parameters for vanilla attack.
+            # parameters used in PPDG-MI.
             current_sphere_radius = attack_params['BREP_MI']['current_sphere_radius']
             sphere_expansion_coeff = attack_params['BREP_MI']['sphere_expansion_coeff']
 
@@ -471,11 +467,14 @@ def label_only_inversion(z, target_id, targets_single_id, G, target_model, E, at
                 if current_sphere_radius > 16.30:
                     print("Reach maximum radius, break!")
                     break
-            else:               # PPDG setting
+            else:               # PPDG-MI setting
                 if current_sphere_radius > 8.91:
                     print("Reach maximum radius, break!")
                     break
 
         log_file.close()
         final_z.append(current_point.unsqueeze(0))
+        end = time.time()
+        print(f'Optimizing target class {target_id} ({i + 1}/{len(z)}) Time: {(end - start):2f}')
+        start = end
     return torch.cat(final_z)

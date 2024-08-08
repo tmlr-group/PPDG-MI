@@ -147,7 +147,7 @@ def evaluate_results(E, G, batch_size, round_num, current_time, prefix, final_z,
         precision_list)
 
     print(
-        f'\nEvaluation of {final_z.shape[0]} images on Eval Model: \taccuracy@1={acc_top1:4f}',
+        f'Evaluation of {final_z.shape[0]} images on Eval Model: \taccuracy@1={acc_top1:4f}',
         f', accuracy@5={acc_top5:4f}, correct_confidence={avg_correct_conf:4f}, total_confidence={avg_total_conf:4f}'
     )
 
@@ -166,7 +166,7 @@ def evaluate_results(E, G, batch_size, round_num, current_time, prefix, final_z,
 
     print('Mean Distance on Eval Model: ', avg_dist_facenet.cpu().item())
 
-    print('Finishing attack, logging results and creating sample images.')
+    print('Logging results and creating sample images.\n')
 
     class KeyDict(dict):
         def __missing__(self, key):

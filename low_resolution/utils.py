@@ -513,19 +513,11 @@ def perform_final_selection(z,
     final_z = []
     target_model.eval()
 
-    # if approach.strip() == 'transforms':
     transformation = transforms.Compose([
-        # transformation.RandomResizedCrop(size=(224, 224),
-        #                     scale=(0.5, 0.9),  # (0.9, 1.0), #(0.5, 0.9),
-        #                     ratio=(0.8, 1.2),  # (1.0, 1.0), #(0.8, 1.2),
-        #                     antialias=True),
-
-        # transformation.RandomResizedCrop(size=(224, 224),
-        #                     scale=(0.8, 1.0),
-        #                     ratio=(1.0, 1.0),
-        #                     antialias=True),
-        transforms.RandomHorizontalFlip(0.5)
-        # transformation.RandomHorizontalFlip(0)
+        # transforms.RandomResizedCrop(size=(64, 64), scale=(0.8, 1.0), ratio=(1.0, 1.0)),
+        # transforms.ColorJitter(brightness=0.2, contrast=0.2),
+        transforms.RandomHorizontalFlip(0.5),
+        # transforms.RandomRotation(5)
     ])
 
     for step, target in enumerate(target_values):

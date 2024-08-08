@@ -14,6 +14,7 @@
         "batch_size": 64,
         "z_dim": 100,
         "epochs": 120,
+        "fine-tune_epoch": 10,
         "n_critic": 5,
         "unlabel_weight": 10
     }
