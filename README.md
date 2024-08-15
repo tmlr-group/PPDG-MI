@@ -113,7 +113,7 @@ Download the model weights for the experiments at this [cloud drive](https://dri
   - `./config/celeba/attacking/ffhq.json` if the target model is trained on FFHQ.
 
 #### Key Configuration Parameters:
-- **`method`:** Select the attack method. Options are: `gmi`, `kedmi`, `brep`, and `rlb`.
+- **`method`:** Select the attack method. Options are: `gmi`, `kedmi`, `brep`, `rlb` and `plg`.
 - **`variant`** (used with `method=gmi/kedmi`): Select the attack variant. Options are: `baseline`, `L_aug`, `L_logit`, and `LOMMA`.
 
 #### Iteration Settings:
@@ -121,14 +121,18 @@ Download the model weights for the experiments at this [cloud drive](https://dri
   - Baseline: `iterations=2400`
   - PPDG-vanilla: `iterations=1200`
   
-- For **RLB-MI**:
-  - Baseline: `iterations=10000`
-  - PPDG-vanilla: `iterations=5000`
-  
 - For **BREP-MI**:
   - Baseline: `iterations=1000`
   - PPDG-vanilla: `iterations=500`
 
+- For **RLB-MI**:
+  - Baseline: `iterations=10000`
+  - PPDG-vanilla: `iterations=5000`
+  
+- For **PLG-MI**:
+  - Baseline: `iterations=10000`
+  - PPDG-vanilla: `iterations=5000`
+  
 ---
 
 #### LOM (GMI) as an example:

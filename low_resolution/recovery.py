@@ -37,6 +37,10 @@ def init_attack_args(cfg):
         args.improved_flag = False
         args.clipz = False
         args.num_seeds = 5
+    if cfg["attack"]["method"] =='plg':
+        args.conditional_flag = True
+    else:
+        args.conditional_flag = False
 
     if cfg["attack"]["variant"] == 'L_logit' or cfg["attack"]["variant"] == 'LOMMA':
         args.loss = 'logit_loss'
@@ -59,11 +63,11 @@ def white_attack(target_model, z, G, D, E, targets_single_id, used_loss, iterati
         final_z_path = f"{prefix}/final_z/round{round_num}_{target_id:03d}.pt"
 
     if os.path.exists(final_z_path):
-        print(f"Load latent vectors from: {final_z_path}.")
+        print(f"Load data from: {final_z_path}.")
         mi_time = 0
         opt_z = torch.load(final_z_path)
     else:
-        print("No latent vectors loading.")
+        print(f"File {final_z_path} does not exist, skipping load.")
         mi_start_time = time.time()
         if args.improved_flag:
             opt_z = KED_inversion(G, D, target_model, E, targets_single_id[:batch_size], batch_size,
@@ -109,8 +113,54 @@ def white_attack(target_model, z, G, D, E, targets_single_id, used_loss, iterati
 
     return final_z, final_targets, [mi_time, selection_time]
 
+def PLG_attack(args, G, D, T, E, targets_single_id, iterations=600, round_num=1):
+    save_dir = f"{prefix}/{current_time}/{target_id:03d}"
 
-def black_attack(agent, G, target_model, alpha, z, max_episodes, max_step, targets_single_id, round_num=0):
+    # File attack_results/PLG/20240806_210404_facescrub_PLG_id0-100_100iters/000/baseline_000.pt does not exist, skipping load.
+    #      attack_results/PLG/20240806_210405_facescrub_PLG_id0-100_100iters/000/baseline_000.pt
+
+    Path(save_dir).mkdir(parents=True, exist_ok=True)
+
+    if round_num == 0:
+        final_z_path = f"{prefix}/final_z/baseline_{target_id:03d}.pt"
+    else:
+        final_z_path = f"{prefix}/final_z/round{round_num}_{target_id:03d}.pt"
+
+    if os.path.exists(final_z_path):
+        print(f"Load data from: {final_z_path}.")
+        mi_time = 0
+        opt_z = torch.load(final_z_path)
+    else:
+        print(f"File {final_z_path} does not exist, skipping load.")
+        mi_start_time = time.time()
+        opt_z = PLG_inversion(args, G, D, T, E, batch_size, targets_single_id, lr=args.lr, MI_iter_times=iterations)
+        mi_time = time.time() - mi_start_time
+        torch.save(opt_z.detach(), final_z_path)
+
+    start_time = time.time()
+    final_z, final_targets = perform_final_selection(
+        opt_z,
+        G,
+        targets_single_id,
+        T,
+        samples_per_target=num_candidates,
+        device=device,
+        batch_size=batch_size,
+    )
+    # no selection
+    # final_z, final_targets = opt_z, targets_single_id
+    selection_time = time.time() - start_time
+
+    print(f'Selected a total of {final_z.shape[0]} final images out of {opt_z.shape[0]} images',
+          f'of target classes {set(final_targets.cpu().tolist())}.')
+
+    # Compute attack accuracy with evaluation model on all generated samples
+    evaluate_results(E, G, batch_size, round_num, current_time, prefix, final_z, final_targets, trainset,
+                     targets_single_id, save_dir)
+
+    return final_z, final_targets, [mi_time, selection_time]
+
+def RLB_attack(agent, G, target_model, alpha, z, max_episodes, max_step, targets_single_id, round_num=0):
     save_dir = f"{prefix}/{current_time}/{target_id:03d}"
     Path(save_dir).mkdir(parents=True, exist_ok=True)
 
@@ -120,11 +170,11 @@ def black_attack(agent, G, target_model, alpha, z, max_episodes, max_step, targe
         final_z_path = f"{prefix}/final_z/round{round_num}_{target_id:03d}.pt"
 
     if os.path.exists(final_z_path):
-        print(f"Load latent vectors from: {final_z_path}.")
+        print(f"Load data from: {final_z_path}.")
         mi_time = 0
         opt_z = torch.load(final_z_path)
     else:
-        print("No latent vectors loading.")
+        print(f"File {final_z_path} does not exist, skipping load.")
         mi_start_time = time.time()
         opt_z = RLB_inversion(agent, G, target_model, alpha, z, max_episodes, max_step,
                                 targets_single_id[0])
@@ -156,7 +206,7 @@ def black_attack(agent, G, target_model, alpha, z, max_episodes, max_step, targe
     return final_z, final_targets, [mi_time, selection_time]
 
 
-def label_only_attack(attack_params, criterion, G, target_model, E, z, targets_single_id, target_id, max_iters_at_radius_before_terminate, round_num=0):
+def BREP_attack(attack_params, criterion, G, target_model, E, z, targets_single_id, target_id, max_iters_at_radius_before_terminate, round_num=0):
     save_dir = f"{prefix}/{current_time}/{target_id:03d}"
     Path(save_dir).mkdir(parents=True, exist_ok=True)
 
@@ -166,11 +216,11 @@ def label_only_attack(attack_params, criterion, G, target_model, E, z, targets_s
         final_z_path = f"{prefix}/final_z/round{round_num}_{target_id:03d}.pt"
 
     if os.path.exists(final_z_path):
-        print(f"Load latent vectors from: {final_z_path}.")
+        print(f"Load data from: {final_z_path}.")
         mi_time = 0
         opt_z = torch.load(final_z_path)
     else:
-        print("No latent vectors loading.")
+        print(f"File {final_z_path} does not exist, skipping load.")
         mi_start_time = time.time()
         opt_z = BREP_inversion(z, target_id, targets_single_id, G, target_model, E, attack_params, criterion,
                                max_iters_at_radius_before_terminate, save_dir, round_num)
@@ -288,7 +338,7 @@ if __name__ == "__main__":
                                                 target_id)
 
                 criterion = nn.CrossEntropyLoss().cuda()
-                final_z, final_targets, time_list = label_only_attack(cfg, criterion, G, targetnets[0], E, z,
+                final_z, final_targets, time_list = BREP_attack(cfg, criterion, G, targetnets[0], E, z,
                                                                       targets_single_id, target_id, max_iters_at_radius_before_terminate,
                                                                       round_num=round)
 
@@ -297,11 +347,14 @@ if __name__ == "__main__":
                 agent = Agent(state_size=z_dim, action_size=z_dim, random_seed=seed, hidden_size=256,
                               action_prior="uniform")
 
-                final_z, final_targets, time_list = black_attack(agent, G, targetnets[0], alpha, z,
+                final_z, final_targets, time_list = RLB_attack(agent, G, targetnets[0], alpha, z,
                                                                  max_episodes,
                                                                  max_step, targets_single_id,
                                                                  round_num=round)
-
+            elif attack_method == 'plg':
+                final_z, final_targets, time_list = PLG_attack(args, G, D, targetnets[0], E, targets_single_id,
+                                                               iterations=iterations,
+                                                               round_num=round)
             else:
                 z = torch.randn(len(targets_single_id), 100).to(device).float()
                 final_z, final_targets, time_list = white_attack(targetnets, z, G, D, E, targets_single_id,
@@ -316,16 +369,18 @@ if __name__ == "__main__":
                 print("Starting GAN fine-tuning.")
 
                 start_time = time.time()
+                json_path = f"./config/celeba/training_GAN/{mode}_gan/{dataset_name}.json"
+                with open(json_path, 'r') as f:
+                    config = json.load(f)
+
                 if args.improved_flag:
-                    json_path = f"./config/celeba/training_GAN/{mode}_gan/{dataset_name}.json"
-                    with open(json_path, 'r') as f:
-                        config = json.load(f)
                     G, D = tune_specific_gan(config, G, D, targetnets[0], selected_z, epochs=10)
+                elif args.conditional_flag:
+                    G, D = tune_cgan(args, G, D, targetnets[0], final_z[:samples_per_target], final_targets[:samples_per_target],
+                                     gan_max_iteration=args.tune_iter_times)
                 else:
-                    json_path = f"./config/celeba/training_GAN/{mode}_gan/{dataset_name}.json"
-                    with open(json_path, 'r') as f:
-                        config = json.load(f)
                     G, D = tune_general_gan(config, G, D, selected_z, epochs=10)
+
                 tune_time = time.time() - start_time
 
                 time_cost_list = [['target', 'mi', 'selection', 'tune_time'],

@@ -156,29 +156,29 @@ def get_model(attack_name, classes):
     return T
 
 
-# def get_augmodel(model_name, nclass, path_T=None, dataset='celeba'):
-#     if model_name == "VGG16":
-#         model = VGG16(nclass)
-#     elif model_name == "VGG16_HSIC":
-#         model = VGG16_HSIC(nclass)
-#     elif model_name == "FaceNet":
-#         model = FaceNet(nclass)
-#     elif model_name == "FaceNet64":
-#         model = FaceNet64(nclass)
-#     elif model_name == "IR152":
-#         model = IR152(nclass)
-#     elif model_name == "efficientnet_b0":
-#         model = classify.EfficientNet_b0(nclass)
-#     elif model_name == "efficientnet_b1":
-#         model = classify.EfficientNet_b1(nclass)
-#     elif model_name == "efficientnet_b2":
-#         model = classify.EfficientNet_b2(nclass)
+def get_augmodel(model_name, nclass, path_T=None, dataset='celeba'):
+    if model_name == "VGG16":
+        model = VGG16(nclass)
+    elif model_name == "VGG16_HSIC":
+        model = VGG16_HSIC(nclass)
+    elif model_name == "FaceNet":
+        model = FaceNet(nclass)
+    elif model_name == "FaceNet64":
+        model = FaceNet64(nclass)
+    elif model_name == "IR152":
+        model = IR152(nclass)
+    elif model_name == "efficientnet_b0":
+        model = classify.EfficientNet_b0(nclass)
+    elif model_name == "efficientnet_b1":
+        model = classify.EfficientNet_b1(nclass)
+    elif model_name == "efficientnet_b2":
+        model = classify.EfficientNet_b2(nclass)
 
-#     model = torch.nn.DataParallel(model).cuda()
-#     if path_T is not None:
-#         ckp_T = torch.load(path_T)
-#         t=model.load_state_dict(ckp_T['state_dict'], strict=True)
-#     return model
+    model = torch.nn.DataParallel(model).cuda()
+    if path_T is not None:
+        ckp_T = torch.load(path_T)
+        t=model.load_state_dict(ckp_T['state_dict'], strict=True)
+    return model
 
 from collections import OrderedDict
 
