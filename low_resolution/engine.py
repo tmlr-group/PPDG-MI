@@ -2,6 +2,7 @@ import torch, utils
 import torch.nn as nn
 from copy import deepcopy
 import kornia
+import losses as L
 from utils import *
 from models.discri import MinibatchDiscriminator, DGWGAN
 from models.generator import Generator
@@ -195,8 +196,8 @@ def train_specific_gan(cfg):
             x_unlabel = unlabel_loader1.next()
             x_unlabel2 = unlabel_loader2.next()
 
-            freeze(G)
-            unfreeze(DG)
+            toogle_grad(G, False)
+            toogle_grad(DG, True)
 
             z = torch.randn(bs, z_dim).cuda()
             f_imgs = G(z)
@@ -226,8 +227,8 @@ def train_specific_gan(cfg):
 
             # train G
             if step % n_critic == 0:
-                freeze(DG)
-                unfreeze(G)
+                toogle_grad(DG, False)
+                toogle_grad(G, True)
                 z = torch.randn(bs, z_dim).cuda()
                 f_imgs = G(z)
                 mom_gen, output_fake = DG(f_imgs)
@@ -313,8 +314,8 @@ def train_general_gan(cfg):
             imgs = imgs.cuda()
             bs = imgs.size(0)
 
-            freeze(G)
-            unfreeze(DG)
+            toogle_grad(G, False)
+            toogle_grad(DG, True)
 
             z = torch.randn(bs, z_dim).cuda()
             f_imgs = G(z)
@@ -333,8 +334,8 @@ def train_general_gan(cfg):
             # train G
 
             if step % n_critic == 0:
-                freeze(DG)
-                unfreeze(G)
+                toogle_grad(DG, False)
+                toogle_grad(G, True)
                 z = torch.randn(bs, z_dim).cuda()
                 f_imgs = G(z)
                 logit_dg = DG(f_imgs)
@@ -359,13 +360,13 @@ def train_general_gan(cfg):
         torch.save({'state_dict': DG.state_dict()}, os.path.join(save_model_dir, "celeba_D.tar"))
 
 
-def tune_cgan(args, gen, dis, target_model, final_z, final_y, gan_max_iteration=1000):
+def tune_cgan(args, cfg, generator, discriminator, target_model, final_z, final_y, epoch=1000):
     def _noise_adder(img):
         return torch.empty_like(img, dtype=img.dtype).uniform_(0.0, 1 / 256.0) + img
 
-    def toogle_grad(model, flag=True):
-        for p in model.parameters():
-            p.requires_grad = flag
+    criterion = find_criterion(args.loss)
+    model_name = cfg['dataset']['model_name']
+    n_critic = cfg[model_name]['n_critic']
 
     # dataset crop setting
     if args.public_data_name == 'celeba':
@@ -404,7 +405,7 @@ def tune_cgan(args, gen, dis, target_model, final_z, final_y, gan_max_iteration=
 
     # pseudo-private dataset
     with torch.no_grad():
-        pseudo_private_data = gen(final_z, final_y).cpu()
+        pseudo_private_data = generator(final_z, final_y).cpu()
 
     final_y = [int(y.item()) for y in final_y]
     # Combine pseudo_private_data and final_y into a dataset
@@ -419,16 +420,12 @@ def tune_cgan(args, gen, dis, target_model, final_z, final_y, gan_max_iteration=
     )
     )
 
-    def check_grad_status(model):
-        for name, param in model.named_parameters():
-            print(f"Parameter {name}: requires_grad = {param.requires_grad}")
-
     # load optimizer
-    toogle_grad(gen, True)
-    toogle_grad(dis, True)
+    toogle_grad(generator, True)
+    toogle_grad(discriminator, True)
 
-    opt_gen = torch.optim.Adam(gen.parameters(), args.tune_cGAN_lr, (args.beta1, args.beta2))
-    opt_dis = torch.optim.Adam(dis.parameters(), args.tune_cGAN_lr, (args.beta1, args.beta2))
+    opt_gen = torch.optim.Adam(generator.parameters(), args.tune_cGAN_lr, (args.beta1, args.beta2))
+    opt_dis = torch.optim.Adam(discriminator.parameters(), args.tune_cGAN_lr, (args.beta1, args.beta2))
     # get adversarial loss
     gen_criterion = L.GenLoss(args.loss_type, args.relativistic_loss)
     dis_criterion = L.DisLoss(args.loss_type, args.relativistic_loss)
@@ -444,7 +441,7 @@ def tune_cgan(args, gen, dis, target_model, final_z, final_y, gan_max_iteration=
     args = prepare_results_dir(args)
 
     # Training loop
-    for n_iter in range(1, gan_max_iteration + 1):
+    for n_iter in range(1, epoch + 1):
         # ==================== Beginning of 1 iteration. ====================
         _l_g = .0
         cumulative_inv_loss = 0.
@@ -454,30 +451,25 @@ def tune_cgan(args, gen, dis, target_model, final_z, final_y, gan_max_iteration=
         target_correct = 0
         count = 0
 
-        for i in range(args.n_dis):  # args.ndis=5, Gen update 1 time, Dis update ndis times.
+        for i in range(n_critic):  # args.ndis=5, Gen update 1 time, Discriminator update ndis times.
             if i == 0:
-                fake, pseudo_y, _ = sample_from_gen(args, device, args.num_classes, gen)
-                dis_fake = dis(fake, pseudo_y)
+                fake, pseudo_y, _ = sample_from_gen(args, device, args.num_classes, generator)
+                dis_fake = discriminator(fake, pseudo_y)
                 # random transformation on the generated images
                 fake_aug = aug_list(fake)
                 # calc the L_inv
-                if args.inv_loss_type == 'ce':
-                    inv_loss = L.cross_entropy_loss(target_model(fake_aug)[-1], pseudo_y)
-                elif args.inv_loss_type == 'margin':
-                    inv_loss = L.max_margin_loss(target_model(fake_aug)[-1], pseudo_y)
-                elif args.inv_loss_type == 'poincare':
-                    inv_loss = L.poincare_loss(target_model(fake_aug)[-1], pseudo_y)
+                inv_loss = criterion(target_model(fake_aug)[-1], pseudo_y)
                 # not used
                 if args.relativistic_loss:
                     real, y = sample_from_data(args, device, train_loader)
-                    dis_real = dis(real, y)
+                    dis_real = discriminator(real, y)
                 else:
                     dis_real = None
                 # calc the loss of G
                 loss_gen = gen_criterion(dis_fake, dis_real)
                 loss_all = loss_gen + inv_loss * args.alpha
                 # update the G
-                gen.zero_grad()
+                generator.zero_grad()
                 loss_all.backward()
                 opt_gen.step()
                 _l_g += loss_gen.item()
@@ -485,14 +477,14 @@ def tune_cgan(args, gen, dis, target_model, final_z, final_y, gan_max_iteration=
                 cumulative_inv_loss += inv_loss.item()
 
             # generate fake images
-            fake, pseudo_y, _ = sample_from_gen(args, device, args.num_classes, gen)
+            fake, pseudo_y, _ = sample_from_gen(args, device, args.num_classes, generator)
             # sample the real images
             real, y = sample_from_data(args, device, train_loader)
             # calc the loss of D
-            dis_fake, dis_real = dis(fake, pseudo_y), dis(real, y)
+            dis_fake, dis_real = discriminator(fake, pseudo_y), discriminator(real, y)
             loss_dis = dis_criterion(dis_fake, dis_real)
             # update D
-            dis.zero_grad()
+            discriminator.zero_grad()
             loss_dis.backward()
             opt_dis.step()
 
@@ -506,23 +498,23 @@ def tune_cgan(args, gen, dis, target_model, final_z, final_y, gan_max_iteration=
                 cumulative_target_acc += round(target_correct / count, 4)
 
         # ==================== End of 1 iteration. ====================
-        args.log_interval = 100
-        if n_iter % args.log_interval == 0:
+        log_interval = 100
+        if n_iter % log_interval == 0:
             print(
                 'iteration: {:07d}/{:07d}, loss gen: {:05f}, loss dis {:05f}, inv loss {:05f}, target acc {:04f}'.format(
-                    n_iter, gan_max_iteration, _l_g, cumulative_loss_dis, cumulative_inv_loss,
+                    n_iter, epoch, _l_g, cumulative_loss_dis, cumulative_inv_loss,
                     cumulative_target_acc)
             )
             # Save previews
             utils.save_images(
-                n_iter, n_iter // args.log_interval, args.results_root,
+                n_iter, n_iter // log_interval, args.results_root,
                 args.train_image_root, fake, real
             )
 
-    toogle_grad(gen, False)
-    toogle_grad(dis, False)
+    toogle_grad(generator, False)
+    toogle_grad(discriminator, False)
 
-    return gen, dis
+    return generator, discriminator
 
 
 def tune_specific_gan(cfg, generator, discriminator, T, final_z, epochs):
@@ -575,8 +567,8 @@ def tune_specific_gan(cfg, generator, discriminator, T, final_z, epochs):
             x_unlabel = next(unlabel_loader1)
             x_unlabel2 = next(unlabel_loader2)
 
-            freeze(generator)
-            unfreeze(discriminator)
+            toogle_grad(generator, False)
+            toogle_grad(discriminator, True)
 
             z = torch.randn(bs, z_dim).cuda()
             f_imgs = generator(z)
@@ -601,8 +593,8 @@ def tune_specific_gan(cfg, generator, discriminator, T, final_z, epochs):
 
             # train G
             if step % n_critic == 0:
-                freeze(discriminator)
-                unfreeze(generator)
+                toogle_grad(discriminator, False)
+                toogle_grad(generator, True)
                 z = torch.randn(bs, z_dim).cuda()
                 f_imgs = generator(z)
                 mom_gen, output_fake = discriminator(f_imgs)
@@ -670,8 +662,8 @@ def tune_general_gan(cfg, generator, discriminator, final_z, epochs):
             imgs = imgs.cuda()
             bs = imgs.size(0)
 
-            freeze(generator)
-            unfreeze(discriminator)
+            toogle_grad(generator, False)
+            toogle_grad(discriminator, True)
 
             z = torch.randn(bs, z_dim).cuda()
             f_imgs = generator(z)
@@ -690,8 +682,8 @@ def tune_general_gan(cfg, generator, discriminator, final_z, epochs):
             # train G
 
             if step % n_critic == 0:
-                freeze(discriminator)
-                unfreeze(generator)
+                toogle_grad(discriminator, False)
+                toogle_grad(generator, True)
                 z = torch.randn(bs, z_dim).cuda()
                 f_imgs = generator(z)
                 logit_dg = discriminator(f_imgs)
@@ -798,8 +790,8 @@ def train_general_CT_gan(cfg):
             bs = imgs.size(0)
 
             for _ in range(1):
-                freeze(G)
-                unfreeze(DG)
+                toogle_grad(G, False)
+                toogle_grad(DG, True)
 
                 z = torch.randn(bs, z_dim).cuda()
                 f_imgs = G(z)
@@ -823,8 +815,8 @@ def train_general_CT_gan(cfg):
 
             for _ in range(5):
                 # train G
-                freeze(DG)
-                unfreeze(G)
+                toogle_grad(DG, False)
+                toogle_grad(G, True)
                 z = torch.randn(bs, z_dim).cuda()
                 f_imgs = G(z)
 

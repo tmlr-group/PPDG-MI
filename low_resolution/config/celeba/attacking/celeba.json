@@ -50,5 +50,13 @@
         "point_clamp_max" : 1.2,
         "batch_dim_for_initial_points" : 256,
         "repulsion_only" : "True"
+    },
+
+    "PLG_MI":{
+    "tune_cGAN_lr": 0.002,
+    "beta1": 0.0,
+    "beta2": 0.9,
+    "beta1": 0.0,
+
     }
 }

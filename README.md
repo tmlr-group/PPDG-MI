@@ -114,7 +114,7 @@ Download the model weights for the experiments at this [cloud drive](https://dri
 
 #### Key Configuration Parameters:
 - **`method`:** Select the attack method. Options are: `gmi`, `kedmi`, `brep`, `rlb` and `plg`.
-- **`variant`** (used with `method=gmi/kedmi`): Select the attack variant. Options are: `baseline`, `L_aug`, `L_logit`, and `LOMMA`.
+- **`variant`** (used with `method=gmi/kedmi`): Select the attack variant. Options are: `baseline`, `aug`, `logit`, `margin`, `lomma`, and `poincare`.
 
 #### Iteration Settings:
 - For **GMI / KEDMI / LOM (GMI) / LOM (KEDMI) / LOMMA (GMI) / LOMMA (KEDMI)**:
@@ -130,8 +130,8 @@ Download the model weights for the experiments at this [cloud drive](https://dri
   - PPDG-vanilla: `iterations=5000`
   
 - For **PLG-MI**:
-  - Baseline: `iterations=10000`
-  - PPDG-vanilla: `iterations=5000`
+  - Baseline: `iterations=1000`
+  - PPDG-vanilla: `iterations=500`
   
 ---
 

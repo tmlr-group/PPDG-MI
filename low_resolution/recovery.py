@@ -1,11 +1,10 @@
-from engine import tune_specific_gan, tune_general_gan
+from engine import tune_specific_gan, tune_general_gan, tune_cgan
 from utils import *
-from models.classify import *
 from evaluation import evaluate_results, write_precision_list
 from pathlib import Path
 import torch
 import os
-from attack import GMI_inversion, KED_inversion, RLB_inversion, BREP_inversion
+from attack import GMI_inversion, KED_inversion, RLB_inversion, BREP_inversion, PLG_inversion
 from argparse import ArgumentParser
 from copy import deepcopy
 from SAC import Agent
@@ -24,6 +23,38 @@ parser.add_argument('--num_candidates', type=int, default=1000, help='Descriptio
 parser.add_argument('--target_classes', type=str, default='0-100', help='Description of target classes')
 
 args = parser.parse_args()
+print("1234567")
+
+parser.add_argument('--private_data_name', type=str, default='celeba', help='celeba | ffhq | facescrub')
+parser.add_argument('--public_data_name', type=str, default='ffhq', help='celeba | ffhq | facescrub')
+
+
+parser.add_argument('--alpha', type=float, default=0.2, help='weight of inv loss. default: 0.2')
+
+# Log and Save interval configuration
+parser.add_argument('--results_root', type=str, default='results',
+                    help='Path to results directory. default: results')
+
+# tune cGAN
+# Generator configuration
+parser.add_argument('--gen_distribution', '-gd', type=str, default='normal',
+                    help='Input noise distribution: normal (default) or uniform.')
+
+# PLG Optimizer settings
+parser.add_argument('--log_interval', '-li', type=int, default=100,
+                    help='Interval of showing losses. default: 100')
+parser.add_argument('--loss_type', type=str, default='hinge',
+                    help='loss function name. hinge (default) or dcgan.')
+parser.add_argument('--relativistic_loss', '-relloss', default=False, action='store_true',
+                    help='Apply relativistic loss or not. default: False')
+
+
+
+
+
+
+
+
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
@@ -42,12 +73,16 @@ def init_attack_args(cfg):
     else:
         args.conditional_flag = False
 
-    if cfg["attack"]["variant"] == 'L_logit' or cfg["attack"]["variant"] == 'LOMMA':
+    if cfg["attack"]["variant"] == 'logit' or cfg["attack"]["variant"] == 'lomma':
         args.loss = 'logit_loss'
+    elif cfg["attack"]["variant"] == 'poincare':
+        args.loss = 'poincare_loss'
+    elif cfg["attack"]["variant"] == 'margin':
+        args.loss = 'margin_loss'
     else:
         args.loss = 'cel'
 
-    if cfg["attack"]["variant"] == 'L_aug' or cfg["attack"]["variant"] == 'LOMMA':
+    if cfg["attack"]["variant"] == 'aug' or cfg["attack"]["variant"] == 'lomma':
         args.classid = '0,1,2,3'
     else:
         args.classid = '0'
@@ -76,7 +111,7 @@ def white_attack(target_model, z, G, D, E, targets_single_id, used_loss, iterati
                                          fea_mean=fea_mean,
                                          fea_logvar=fea_logvar,
                                          iter_times=iterations,
-                                         improved=True,
+                                         improved=args.improved_flag,
                                          lam=cfg["attack"]["lam"])
         else:
             opt_z = GMI_inversion(G, D, target_model, E, batch_size, z, targets_single_id,
@@ -84,12 +119,13 @@ def white_attack(target_model, z, G, D, E, targets_single_id, used_loss, iterati
                                     fea_mean=fea_mean,
                                     fea_logvar=fea_logvar,
                                     iter_times=iterations,
+                                    improved=args.improved_flag,
                                     lam=cfg["attack"]["lam"])
 
         mi_time = time.time() - mi_start_time
 
     start_time = time.time()
-    # final_z, final_targets = opt_z, targets_single_id
+
     final_z, final_targets = perform_final_selection(
         opt_z,
         G,
@@ -113,12 +149,8 @@ def white_attack(target_model, z, G, D, E, targets_single_id, used_loss, iterati
 
     return final_z, final_targets, [mi_time, selection_time]
 
-def PLG_attack(args, G, D, T, E, targets_single_id, iterations=600, round_num=1):
+def PLG_attack(args, G, D, target_model, E, targets_single_id, used_loss, iterations=600, round_num=1):
     save_dir = f"{prefix}/{current_time}/{target_id:03d}"
-
-    # File attack_results/PLG/20240806_210404_facescrub_PLG_id0-100_100iters/000/baseline_000.pt does not exist, skipping load.
-    #      attack_results/PLG/20240806_210405_facescrub_PLG_id0-100_100iters/000/baseline_000.pt
-
     Path(save_dir).mkdir(parents=True, exist_ok=True)
 
     if round_num == 0:
@@ -133,7 +165,7 @@ def PLG_attack(args, G, D, T, E, targets_single_id, iterations=600, round_num=1)
     else:
         print(f"File {final_z_path} does not exist, skipping load.")
         mi_start_time = time.time()
-        opt_z = PLG_inversion(args, G, D, T, E, batch_size, targets_single_id, lr=args.lr, MI_iter_times=iterations)
+        opt_z = PLG_inversion(args, G, D, target_model, E, batch_size, targets_single_id, used_loss=used_loss, lr=args.lr, iterations=iterations)
         mi_time = time.time() - mi_start_time
         torch.save(opt_z.detach(), final_z_path)
 
@@ -142,13 +174,11 @@ def PLG_attack(args, G, D, T, E, targets_single_id, iterations=600, round_num=1)
         opt_z,
         G,
         targets_single_id,
-        T,
+        target_model,
         samples_per_target=num_candidates,
         device=device,
         batch_size=batch_size,
     )
-    # no selection
-    # final_z, final_targets = opt_z, targets_single_id
     selection_time = time.time() - start_time
 
     print(f'Selected a total of {final_z.shape[0]} final images out of {opt_z.shape[0]} images',
@@ -206,7 +236,7 @@ def RLB_attack(agent, G, target_model, alpha, z, max_episodes, max_step, targets
     return final_z, final_targets, [mi_time, selection_time]
 
 
-def BREP_attack(attack_params, criterion, G, target_model, E, z, targets_single_id, target_id, max_iters_at_radius_before_terminate, round_num=0):
+def BREP_attack(attack_params, G, target_model, E, z, targets_single_id, target_id, max_iters_at_radius_before_terminate, used_loss, round_num=0):
     save_dir = f"{prefix}/{current_time}/{target_id:03d}"
     Path(save_dir).mkdir(parents=True, exist_ok=True)
 
@@ -222,8 +252,8 @@ def BREP_attack(attack_params, criterion, G, target_model, E, z, targets_single_
     else:
         print(f"File {final_z_path} does not exist, skipping load.")
         mi_start_time = time.time()
-        opt_z = BREP_inversion(z, target_id, targets_single_id, G, target_model, E, attack_params, criterion,
-                               max_iters_at_radius_before_terminate, save_dir, round_num)
+        opt_z = BREP_inversion(z, target_id, targets_single_id, G, target_model, E, attack_params, used_loss,
+                               used_loss, max_iters_at_radius_before_terminate, save_dir, round_num)
         mi_time = time.time() - mi_start_time
 
     start_time = time.time()
@@ -277,7 +307,7 @@ if __name__ == "__main__":
 
     train_file = cfg['dataset']['train_file_path']
     print("load training data!")
-    trainset, trainloader = utils.init_dataloader(cfg, train_file, mode="train")
+    trainset, trainloader = init_dataloader(cfg, train_file, mode="train")
 
     # Load models
     targetnets, E, G, D, n_classes, fea_mean, fea_logvar = get_attack_model(args, cfg)
@@ -337,9 +367,9 @@ if __name__ == "__main__":
                                                 num_candidates,
                                                 target_id)
 
-                criterion = nn.CrossEntropyLoss().cuda()
-                final_z, final_targets, time_list = BREP_attack(cfg, criterion, G, targetnets[0], E, z,
+                final_z, final_targets, time_list = BREP_attack(cfg, G, targetnets[0], E, z,
                                                                       targets_single_id, target_id, max_iters_at_radius_before_terminate,
+                                                                      used_loss=args.loss,
                                                                       round_num=round)
 
             elif attack_method == 'rlb':
@@ -353,6 +383,7 @@ if __name__ == "__main__":
                                                                  round_num=round)
             elif attack_method == 'plg':
                 final_z, final_targets, time_list = PLG_attack(args, G, D, targetnets[0], E, targets_single_id,
+                                                               used_loss=args.loss,
                                                                iterations=iterations,
                                                                round_num=round)
             else:
@@ -364,6 +395,7 @@ if __name__ == "__main__":
 
             print(f"Select a total of {samples_per_target} images from {num_candidates} images for the target classes {target_id}.\n")
             selected_z = final_z[:samples_per_target]
+            selected_targets = final_z[:samples_per_target]
 
             if round < num_round - 1 :
                 print("Starting GAN fine-tuning.")
@@ -376,8 +408,7 @@ if __name__ == "__main__":
                 if args.improved_flag:
                     G, D = tune_specific_gan(config, G, D, targetnets[0], selected_z, epochs=10)
                 elif args.conditional_flag:
-                    G, D = tune_cgan(args, G, D, targetnets[0], final_z[:samples_per_target], final_targets[:samples_per_target],
-                                     gan_max_iteration=args.tune_iter_times)
+                    G, D = tune_cgan(args, config, G, D, targetnets[0], selected_z, selected_targets, epoch=500)
                 else:
                     G, D = tune_general_gan(config, G, D, selected_z, epochs=10)
 

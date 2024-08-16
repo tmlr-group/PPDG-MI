@@ -4,36 +4,34 @@ import torch.nn.functional as F
 AVAILABLE_LOSSES = ["hinge", "dcgan"]
 
 
-def max_margin_loss(out, iden):
-    real = out.gather(1, iden.unsqueeze(1)).squeeze(1)
-    tmp1 = torch.argsort(out, dim=1)[:, -2:]
-    new_y = torch.where(tmp1[:, -1] == iden, tmp1[:, -2], tmp1[:, -1])
-    margin = out.gather(1, new_y.unsqueeze(1)).squeeze(1)
-
-    return (-1 * real).mean() + margin.mean()
-
-
-def cross_entropy_loss(out, iden):
-    return torch.nn.CrossEntropyLoss()(out, iden)
+def max_margin_loss():
+    def loss_fn(out, iden):
+        real = out.gather(1, iden.unsqueeze(1)).squeeze(1)
+        tmp1 = torch.argsort(out, dim=1)[:, -2:]
+        new_y = torch.where(tmp1[:, -1] == iden, tmp1[:, -2], tmp1[:, -1])
+        margin = out.gather(1, new_y.unsqueeze(1)).squeeze(1)
+        return (-1 * real).mean() + margin.mean()
+    return loss_fn
 
 
-def poincare_loss(outputs, targets, xi=1e-4):
-    # Normalize logits
-    u = outputs / torch.norm(outputs, p=1, dim=-1).unsqueeze(1)
-    # Create one-hot encoded target vector
-    v = torch.clip(torch.eye(outputs.shape[-1])[targets] - xi, 0, 1)
-    v = v.to(u.device)
-    # Compute squared norms
-    u_norm_squared = torch.norm(u, p=2, dim=1) ** 2
-    v_norm_squared = torch.norm(v, p=2, dim=1) ** 2
-    diff_norm_squared = torch.norm(u - v, p=2, dim=1) ** 2
-    # Compute delta
-    delta = 2 * diff_norm_squared / ((1 - u_norm_squared) *
-                                     (1 - v_norm_squared))
-    # Compute distance
-    loss = torch.arccosh(1 + delta)
-    return loss.mean()
+def nll_loss():
+    return torch.nn.NLLLoss()
 
+def cross_entropy_loss():
+    return torch.nn.CrossEntropyLoss()
+
+def poincare_loss(xi=1e-4):
+    def loss_fn(outputs, targets):
+        u = outputs / torch.norm(outputs, p=1, dim=-1).unsqueeze(1)
+        v = torch.clip(torch.eye(outputs.shape[-1])[targets] - xi, 0, 1)
+        v = v.to(u.device)
+        u_norm_squared = torch.norm(u, p=2, dim=1) ** 2
+        v_norm_squared = torch.norm(v, p=2, dim=1) ** 2
+        diff_norm_squared = torch.norm(u - v, p=2, dim=1) ** 2
+        delta = 2 * diff_norm_squared / ((1 - u_norm_squared) * (1 - v_norm_squared))
+        loss = torch.arccosh(1 + delta)
+        return loss.mean()
+    return loss_fn
 
 def dis_hinge(dis_fake, dis_real):
     loss = torch.mean(torch.relu(1. - dis_real)) + \

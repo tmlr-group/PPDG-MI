@@ -1,11 +1,14 @@
 import os, models.facenet as facenet, sys
 import json, time, torch
+import shutil
+
 from models import classify
 from models.classify import *
 from models.discri import *
 from models.generator import *
 import torch.nn as nn
 import torch.nn.functional as F
+import losses as L
 import torchvision.utils as tvls
 from torchvision import transforms
 from datetime import datetime
@@ -19,7 +22,6 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 def toogle_grad(model, flag=True):
     for p in model.parameters():
         p.requires_grad = flag
-
 
 class Tee(object):
     def __init__(self, name, mode):
@@ -113,6 +115,34 @@ def save_tensor_images(images, filename, nrow=None, normalize=True):
     else:
         tvls.save_image(images, filename, normalize=normalize, nrow=nrow, padding=0)
 
+def save_images(n_iter, count, root, train_image_root, fake, real):
+    """Save images (torch.tensor).
+
+    Args:
+        root (str)
+        train_image_root (root)
+        fake (torch.tensor)
+        real (torch.tensor)
+
+    """
+
+    fake_path = os.path.join(
+        train_image_root,
+        'fake_{}_iter_{:07d}.png'.format(count, n_iter)
+    )
+    real_path = os.path.join(
+        train_image_root,
+        'real_{}_iter_{:07d}.png'.format(count, n_iter)
+    )
+    torchvision.utils.save_image(
+        fake, fake_path, nrow=4, normalize=True, scale_each=True
+    )
+    shutil.copy(fake_path, os.path.join(root, 'fake_latest.png'))
+    torchvision.utils.save_image(
+        real, real_path, nrow=4, normalize=True, scale_each=True
+    )
+    shutil.copy(real_path, os.path.join(root, 'real_latest.png'))
+
 
 def get_deprocessor():
     # resize 112,112
@@ -159,8 +189,6 @@ def get_model(attack_name, classes):
 def get_augmodel(model_name, nclass, path_T=None, dataset='celeba'):
     if model_name == "VGG16":
         model = VGG16(nclass)
-    elif model_name == "VGG16_HSIC":
-        model = VGG16_HSIC(nclass)
     elif model_name == "FaceNet":
         model = FaceNet(nclass)
     elif model_name == "FaceNet64":
@@ -200,7 +228,6 @@ def get_augmodel(model_name, nclass, path_T=None, dataset='celeba'):
     # Mapping of model names to model constructors
     model_classes = {
         "VGG16": VGG16,
-        "VGG16_HSIC": VGG16_HSIC,
         "FaceNet": FaceNet,
         "FaceNet64": FaceNet64,
         "IR152": IR152,
@@ -256,16 +283,23 @@ class HLoss(nn.Module):
         b = -1.0 * b.sum()
         return b
 
-
-def freeze(net):
-    for p in net.parameters():
-        p.requires_grad_(False)
-
-
-def unfreeze(net):
-    for p in net.parameters():
-        p.requires_grad_(True)
-
+def find_criterion(used_loss):
+    criterion = None
+    if used_loss == 'logit':
+        criterion = L.nll_loss().to(device)
+        print('criterion:{}'.format(used_loss))
+    elif used_loss == 'poincare':
+        criterion = L.poincare_loss().to(device)
+        print('criterion', criterion)
+    elif used_loss == 'margin':
+        criterion = L.max_margin_loss().to(device)
+        print('criterion', criterion)
+    elif used_loss == 'cel':
+        criterion = nn.CrossEntropyLoss().to(device)
+        print('criterion', criterion)
+    else:
+        print('criterion:{}'.format(used_loss))
+    return criterion
 
 def gradient_penalty(x, y, DG):
     # interpolation
@@ -337,7 +371,7 @@ def get_attack_model(args, args_json, eval_mode=False):
 
     if not eval_mode:
         log_file = "invertion_logs_{}_{}.txt".format(args.loss, now.strftime("%m_%d_%Y_%H_%M_%S"))
-        utils.Tee(os.path.join(args.log_path, log_file), 'w')
+        Tee(os.path.join(args.log_path, log_file), 'w')
 
     n_classes = args_json['dataset']['n_classes']
 
@@ -499,6 +533,23 @@ def scores_by_transform(imgs,
         score = score / iterations
     return score
 
+
+def prepare_results_dir(args):
+    """Makedir, init tensorboard if required, save args."""
+    root = os.path.join(args.results_root,
+                        args.public_data_name, args.model)
+    os.makedirs(root, exist_ok=True)
+
+    train_image_root = os.path.join(root, "preview", "train")
+    eval_image_root = os.path.join(root, "preview", "eval")
+    os.makedirs(train_image_root, exist_ok=True)
+    os.makedirs(eval_image_root, exist_ok=True)
+
+    args.results_root = root
+    args.train_image_root = train_image_root
+    args.eval_image_root = eval_image_root
+
+    return args
 
 def perform_final_selection(z,
                             G,

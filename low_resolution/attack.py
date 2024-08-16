@@ -54,19 +54,6 @@ def reparameterize_batch(mu, logvar, batch_size):
     return eps * std + mu
 
 
-def find_criterion(used_loss):
-    criterion = None
-    if used_loss == 'logit_loss':
-        criterion = nn.NLLLoss().to(device)
-        print('criterion:{}'.format(used_loss))
-    elif used_loss == 'cel':
-        criterion = nn.CrossEntropyLoss().to(device)
-        print('criterion', criterion)
-    else:
-        print('criterion:{}'.format(used_loss))
-    return criterion
-
-
 def get_act_reg(train_loader, T, device, Nsample=5000):
     all_fea = []
     with torch.no_grad():
@@ -121,9 +108,8 @@ def iden_loss(T, fake, iden, used_loss, criterion, fea_mean=0, fea_logvar=0, lam
     return Iden_Loss
 
 
-def KED_inversion(G, D, T, E, iden, batch_size, num_candidates, lr=2e-2, momentum=0.9, lamda=100,
-                         iter_times=1500, clip_range=1.0, improved=False, num_seeds=5,
-                         used_loss='cel', prefix='', random_seed=0, save_img_dir='', fea_mean=0,
+def KED_inversion(G, D, T, E, iden, batch_size, num_candidates, lr=2e-2, lamda=100,
+                         iter_times=1500, clip_range=1.0, improved=False, used_loss='cel', fea_mean=0,
                          fea_logvar=0, lam=0.1, clipz=False):
     iden = iden.view(-1).long().to(device)
     criterion = find_criterion(used_loss)
@@ -199,8 +185,7 @@ def KED_inversion(G, D, T, E, iden, batch_size, num_candidates, lr=2e-2, momentu
 
 def GMI_inversion(G, D, T, E, batch_size, z_init, targets, lr=2e-2, momentum=0.9, lamda=100,
                     iter_times=1500, clip_range=1, improved=False,
-                    used_loss='cel', prefix='', save_img_dir='', fea_mean=0,
-                    fea_logvar=0, lam=0.1, istart=0, same_z=''):
+                    used_loss='cel', fea_mean=0, fea_logvar=0, lam=0.1):
     criterion = find_criterion(used_loss)
 
     G.eval()
@@ -278,7 +263,9 @@ def GMI_inversion(G, D, T, E, batch_size, z_init, targets, lr=2e-2, momentum=0.9
 
     return torch.concat(z_opt, dim=0)
 
-def PLG_inversion(args, G, D, T, E, batch_size, targets, lr=2e-2, MI_iter_times=600):
+def PLG_inversion(args, G, D, T, E, batch_size, targets, lr=2e-2, used_loss='margin', iterations=600):
+    criterion = find_criterion(used_loss)
+
     G.eval()
     D.eval()
     E.eval()
@@ -308,7 +295,7 @@ def PLG_inversion(args, G, D, T, E, batch_size, targets, lr=2e-2, MI_iter_times=
 
         optimizer = torch.optim.Adam([z], lr=lr)
 
-        for i in range(MI_iter_times):
+        for i in range(iterations):
             fake = G(z, iden)
 
             out1 = T(aug_list(fake))[-1]
@@ -317,12 +304,7 @@ def PLG_inversion(args, G, D, T, E, batch_size, targets, lr=2e-2, MI_iter_times=
             if z.grad is not None:
                 z.grad.data.zero_()
 
-            if args.inv_loss_type == 'ce':
-                inv_loss = L.cross_entropy_loss(out1, iden) + L.cross_entropy_loss(out2, iden)
-            elif args.inv_loss_type == 'margin':
-                inv_loss = L.max_margin_loss(out1, iden) + L.max_margin_loss(out2, iden)
-            elif args.inv_loss_type == 'poincare':
-                inv_loss = L.poincare_loss(out1, iden) + L.poincare_loss(out2, iden)
+            inv_loss = criterion(out1, iden) + criterion(out2, iden)
 
             optimizer.zero_grad()
             inv_loss.backward()
@@ -433,8 +415,9 @@ def gen_points_on_sphere(current_point, points_count, sphere_radius):
     return sphere_points, perturbation_direction
 
 
-def BREP_inversion(z, target_id, targets_single_id, G, target_model, E, attack_params, criterion, max_iters_at_radius_before_terminate,
-                         current_iden_dir, round_num):
+def BREP_inversion(z, target_id, targets_single_id, G, target_model, E, attack_params, max_iters_at_radius_before_terminate,
+                         current_iden_dir, used_loss='ce', round_num=0):
+    criterion = find_criterion(used_loss)
     final_z = []
     start = time.time()
 
