@@ -64,7 +64,7 @@ def init_attack_args(cfg):
     elif cfg["attack"]["variant"] == 'margin':
         args.loss = 'margin_loss'
     else:
-        args.loss = 'cel'
+        args.loss = 'ce_loss'
 
     if cfg["attack"]["variant"] == 'aug' or cfg["attack"]["variant"] == 'lomma':
         args.classid = '0,1,2,3'
@@ -299,7 +299,7 @@ if __name__ == "__main__":
     original_D = deepcopy(D)
 
     num_candidates = args.num_candidates
-    samples_per_target = args.num_candidates
+    samples_per_target = args.num_candidates // 2
     target_classes = args.target_classes
     start, end = map(int, target_classes.split('-'))
     targets = torch.tensor([i for i in range(start, end)])
@@ -315,7 +315,7 @@ if __name__ == "__main__":
 
     max_step = cfg['RLB_MI']['max_step']
     alpha = cfg['RLB_MI']['alpha']
-    RLB_seed = cfg['RLB-MI']['seed']
+    RLB_seed = cfg['RLB_MI']['seed']
     max_episodes = args.iterations
 
     batch_dim_for_initial_points = cfg['BREP_MI']['batch_dim_for_initial_points']

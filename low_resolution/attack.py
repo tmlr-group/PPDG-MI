@@ -106,9 +106,9 @@ def iden_loss(T, fake, iden, used_loss, criterion, fea_mean=0, fea_logvar=0, lam
     return Iden_Loss
 
 
-def KED_inversion(G, D, T, E, iden, batch_size, num_candidates, lr=2e-2, lamda=100,
-                         iter_times=1500, clip_range=1.0, improved=False, used_loss='ce', fea_mean=0,
-                         fea_logvar=0, lam=0.1, clipz=False):
+def KED_inversion(G, D, T, E, iden, batch_size, num_candidates, used_loss='ce', fea_mean=0,
+                         fea_logvar=0, iter_times=2400, improved=False, lam=0.1,
+                         lr=2e-2, clip_range=1.0, clipz=False, lamda=100):
     iden = iden.view(-1).long().to(device)
     criterion = find_criterion(used_loss)
     bs = iden.shape[0]

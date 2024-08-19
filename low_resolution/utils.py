@@ -285,16 +285,16 @@ class HLoss(nn.Module):
 
 def find_criterion(used_loss):
     criterion = None
-    if used_loss == 'logit':
+    if used_loss == 'logit_loss':
         criterion = L.nll_loss().to(device)
         print('criterion:{}'.format(used_loss))
-    elif used_loss == 'poincare':
+    elif used_loss == 'poincare_loss':
         criterion = L.poincare_loss().to(device)
         print('criterion', criterion)
-    elif used_loss == 'margin':
+    elif used_loss == 'margin_loss':
         criterion = L.max_margin_loss().to(device)
         print('criterion', criterion)
-    elif used_loss == 'ce':
+    elif used_loss == 'ce_loss':
         criterion = nn.CrossEntropyLoss().to(device)
         print('criterion', criterion)
     else:

@@ -156,3 +156,4 @@ We are grateful for the following works:
 - Re-thinking Model Inversion Attacks Against Deep Neural Networks: https://github.com/sutd-visual-computing-group/Re-thinking_MI
 - Label-Only Model Inversion Attacks via Boundary Repulsion: https://github.com/m-kahla/Label-Only-Model-Inversion-Attacks-via-Boundary-Repulsion
 - Reinforcement Learning-Based Black-Box Model Inversion Attacks: https://github.com/HanGyojin/RLB-MI
+- Pseudo Label-Guided Model Inversion Attack via Conditional Generative Adversarial Network: https://github.com/LetheSec/PLG-MI-Attack
