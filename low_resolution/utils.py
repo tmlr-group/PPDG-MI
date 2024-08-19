@@ -294,7 +294,7 @@ def find_criterion(used_loss):
     elif used_loss == 'margin':
         criterion = L.max_margin_loss().to(device)
         print('criterion', criterion)
-    elif used_loss == 'cel':
+    elif used_loss == 'ce':
         criterion = nn.CrossEntropyLoss().to(device)
         print('criterion', criterion)
     else:
