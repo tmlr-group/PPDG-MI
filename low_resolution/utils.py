@@ -596,5 +596,4 @@ def perform_final_selection(z,
     print(scores[selected_indices])
     final_targets = torch.cat(final_targets, dim=0)
     final_z = torch.cat(final_z, dim=0)
-    # return final_z, final_targets
     return final_z, final_targets

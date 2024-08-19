@@ -22,14 +22,8 @@ parser.add_argument('--num_round', type=int, default=1, help='Description of num
 parser.add_argument('--num_candidates', type=int, default=1000, help='Description of number of candidates')
 parser.add_argument('--target_classes', type=str, default='0-100', help='Description of target classes')
 
-args = parser.parse_args()
-print("1234567")
-
 parser.add_argument('--private_data_name', type=str, default='celeba', help='celeba | ffhq | facescrub')
 parser.add_argument('--public_data_name', type=str, default='ffhq', help='celeba | ffhq | facescrub')
-
-
-parser.add_argument('--alpha', type=float, default=0.2, help='weight of inv loss. default: 0.2')
 
 # Log and Save interval configuration
 parser.add_argument('--results_root', type=str, default='results',
@@ -48,13 +42,7 @@ parser.add_argument('--loss_type', type=str, default='hinge',
 parser.add_argument('--relativistic_loss', '-relloss', default=False, action='store_true',
                     help='Apply relativistic loss or not. default: False')
 
-
-
-
-
-
-
-
+args = parser.parse_args()
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 

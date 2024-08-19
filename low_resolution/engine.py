@@ -467,7 +467,7 @@ def tune_cgan(args, cfg, generator, discriminator, target_model, final_z, final_
                     dis_real = None
                 # calc the loss of G
                 loss_gen = gen_criterion(dis_fake, dis_real)
-                loss_all = loss_gen + inv_loss * args.alpha
+                loss_all = loss_gen + inv_loss * cfg["PLG-MI"]["inv_loss_weight"]
                 # update the G
                 generator.zero_grad()
                 loss_all.backward()
