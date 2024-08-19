@@ -1,7 +1,6 @@
 import torch, utils
 import torch.nn as nn
 from copy import deepcopy
-import kornia
 import losses as L
 from utils import *
 from models.discri import MinibatchDiscriminator, DGWGAN
@@ -431,12 +430,12 @@ def tune_cgan(args, cfg, generator, discriminator, target_model, final_z, final_
     dis_criterion = L.DisLoss(args.loss_type, args.relativistic_loss)
 
     # data augmentation module in stage-1 for the generated images
-    aug_list = kornia.augmentation.container.ImageSequential(
-        kornia.augmentation.RandomResizedCrop((64, 64), scale=(0.8, 1.0), ratio=(1.0, 1.0)),
-        kornia.augmentation.ColorJitter(brightness=0.2, contrast=0.2, p=0.5),
-        kornia.augmentation.RandomHorizontalFlip(),
-        kornia.augmentation.RandomRotation(5),
-    )
+    aug_list = transforms.Compose([
+        transforms.RandomResizedCrop(size=(64, 64), scale=(0.8, 1.0), ratio=(1.0, 1.0)),
+        transforms.ColorJitter(brightness=0.2, contrast=0.2),
+        transforms.RandomHorizontalFlip(0.5),
+        transforms.RandomRotation(5)
+    ])
 
     args = prepare_results_dir(args)
 

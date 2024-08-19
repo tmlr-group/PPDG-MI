@@ -7,8 +7,6 @@ from utils import *
 from torch.autograd import Variable
 import torch.optim as optim
 import math
-import kornia
-from kornia import augmentation
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
@@ -271,12 +269,12 @@ def PLG_inversion(args, G, D, T, E, batch_size, targets, lr=2e-2, used_loss='mar
     E.eval()
     T.eval()
 
-    aug_list = augmentation.container.ImageSequential(
-        augmentation.RandomResizedCrop((64, 64), scale=(0.8, 1.0), ratio=(1.0, 1.0)),
-        augmentation.ColorJitter(brightness=0.2, contrast=0.2),
-        augmentation.RandomHorizontalFlip(),
-        augmentation.RandomRotation(5),
-    )
+    aug_list = transforms.Compose([
+        transforms.RandomResizedCrop(size=(64, 64), scale=(0.8, 1.0), ratio=(1.0, 1.0)),
+        transforms.ColorJitter(brightness=0.2, contrast=0.2),
+        transforms.RandomHorizontalFlip(0.5),
+        transforms.RandomRotation(5)
+    ])
 
     z_opt = []
     # Prepare batches for attack
@@ -314,7 +312,7 @@ def PLG_inversion(args, G, D, T, E, batch_size, targets, lr=2e-2, used_loss='mar
                 with torch.no_grad():
                     fake_img = G(z.detach(), iden)
 
-                    eval_prob = E(augmentation.Resize((112, 112))(fake_img))[-1]
+                    eval_prob = E(transforms.Resize((112, 112))(fake_img))[-1]
                     eval_iden = torch.argmax(eval_prob, dim=1).view(-1)
                     acc = iden.eq(eval_iden.long()).sum().item() * 100.0 / batch_size
                     print("Iteration:{}\tInv Loss:{:.2f}\tAttack Acc:{:.3f}".format(i + 1,
