@@ -9,7 +9,7 @@ from argparse import ArgumentParser
 from copy import deepcopy
 from SAC import Agent
 
-torch.manual_seed(9)
+torch.manual_seed(42)
 
 parser = ArgumentParser(description='Inversion')
 parser.add_argument('--configs', type=str, default='./config/celeba/attacking/celeba.json')
@@ -28,15 +28,11 @@ parser.add_argument('--public_data_name', type=str, default='ffhq', help='celeba
 # Log and Save interval configuration
 parser.add_argument('--results_root', type=str, default='results',
                     help='Path to results directory. default: results')
-
 # tune cGAN
-# Generator configuration
 parser.add_argument('--gen_distribution', '-gd', type=str, default='normal',
                     help='Input noise distribution: normal (default) or uniform.')
 
 # PLG Optimizer settings
-parser.add_argument('--log_interval', '-li', type=int, default=100,
-                    help='Interval of showing losses. default: 100')
 parser.add_argument('--loss_type', type=str, default='hinge',
                     help='loss function name. hinge (default) or dcgan.')
 parser.add_argument('--relativistic_loss', '-relloss', default=False, action='store_true',
@@ -45,7 +41,6 @@ parser.add_argument('--relativistic_loss', '-relloss', default=False, action='st
 args = parser.parse_args()
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
-
 
 def init_attack_args(cfg):
     if cfg["attack"]["method"] =='kedmi':
@@ -56,6 +51,7 @@ def init_attack_args(cfg):
         args.improved_flag = False
         args.clipz = False
         args.num_seeds = 5
+
     if cfg["attack"]["method"] =='plg':
         args.conditional_flag = True
     else:
@@ -76,7 +72,7 @@ def init_attack_args(cfg):
         args.classid = '0'
 
 
-def white_attack(target_model, z, G, D, E, targets_single_id, used_loss, iterations=2400, round_num=0):
+def GMI_KEDMI_attack(target_model, z, G, D, E, targets_single_id, used_loss, iterations=2400, round_num=0):
     save_dir = f"{prefix}/{current_time}/{target_id:03d}"
     Path(save_dir).mkdir(parents=True, exist_ok=True)
 
@@ -317,8 +313,8 @@ if __name__ == "__main__":
     model_name = cfg['dataset']['model_name']
 
     max_step = cfg['RLB_MI']['max_step']
-    seed = cfg['RLB_MI']['seed']
     alpha = cfg['RLB_MI']['alpha']
+    RLB_seed = cfg['RLB-MI']['seed']
     max_episodes = args.iterations
 
     z_dim = cfg['BREP_MI']['z_dim']
@@ -362,7 +358,7 @@ if __name__ == "__main__":
 
             elif attack_method == 'rlb':
                 z = torch.randn(len(targets_single_id), 100).to(device).float()
-                agent = Agent(state_size=z_dim, action_size=z_dim, random_seed=seed, hidden_size=256,
+                agent = Agent(state_size=z_dim, action_size=z_dim, random_seed=RLB_seed, hidden_size=256,
                               action_prior="uniform")
 
                 final_z, final_targets, time_list = RLB_attack(agent, G, targetnets[0], alpha, z,
@@ -376,7 +372,7 @@ if __name__ == "__main__":
                                                                round_num=round)
             else:
                 z = torch.randn(len(targets_single_id), 100).to(device).float()
-                final_z, final_targets, time_list = white_attack(targetnets, z, G, D, E, targets_single_id,
+                final_z, final_targets, time_list = GMI_KEDMI_attack(targetnets, z, G, D, E, targets_single_id,
                                                                  used_loss=args.loss,
                                                                  iterations=iterations,
                                                                  round_num=round)

@@ -565,10 +565,10 @@ def perform_final_selection(z,
     target_model.eval()
 
     transformation = transforms.Compose([
-        # transforms.RandomResizedCrop(size=(64, 64), scale=(0.8, 1.0), ratio=(1.0, 1.0)),
-        # transforms.ColorJitter(brightness=0.2, contrast=0.2),
+        transforms.RandomResizedCrop(size=(64, 64), scale=(0.8, 1.0), ratio=(1.0, 1.0)),
+        transforms.ColorJitter(brightness=0.2, contrast=0.2),
         transforms.RandomHorizontalFlip(0.5),
-        # transforms.RandomRotation(5)
+        transforms.RandomRotation(5)
     ])
 
     for step, target in enumerate(target_values):
