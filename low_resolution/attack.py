@@ -107,8 +107,8 @@ def iden_loss(T, fake, iden, used_loss, criterion, fea_mean=0, fea_logvar=0, lam
 
 
 def KED_inversion(G, D, T, E, iden, batch_size, num_candidates, used_loss='ce', fea_mean=0,
-                         fea_logvar=0, iter_times=2400, improved=False, lam=0.1,
-                         lr=2e-2, clip_range=1.0, clipz=False, lamda=100):
+                  fea_logvar=0, iter_times=2400, improved=False, lam=0.1,
+                  lr=2e-2, clip_range=1.0, clipz=False, lamda=100):
     iden = iden.view(-1).long().to(device)
     criterion = find_criterion(used_loss)
     bs = iden.shape[0]
@@ -138,6 +138,7 @@ def KED_inversion(G, D, T, E, iden, batch_size, num_candidates, used_loss='ce', 
         for p in params:
             if p.grad is not None:
                 p.grad.data.zero_()
+
         Iden_Loss = iden_loss(T, fake, iden, used_loss, criterion, fea_mean, fea_logvar, lam)
 
         if improved:
@@ -182,8 +183,8 @@ def KED_inversion(G, D, T, E, iden, batch_size, num_candidates, used_loss='ce', 
 
 
 def GMI_inversion(G, D, T, E, batch_size, z_init, targets, lr=2e-2, momentum=0.9, lamda=100,
-                    iter_times=1500, clip_range=1, improved=False,
-                    used_loss='cel', fea_mean=0, fea_logvar=0, lam=0.1):
+                  iter_times=1500, clip_range=1, improved=False,
+                  used_loss='cel', fea_mean=0, fea_logvar=0, lam=0.1):
     criterion = find_criterion(used_loss)
 
     G.eval()
@@ -261,7 +262,8 @@ def GMI_inversion(G, D, T, E, batch_size, z_init, targets, lr=2e-2, momentum=0.9
 
     return torch.concat(z_opt, dim=0)
 
-def PLG_inversion(args, G, D, T, E, batch_size, targets, lr=2e-2, used_loss='margin', iterations=600):
+
+def PLG_inversion(args, G, D, T, E, z_dim, batch_size, targets, lr=2e-2, used_loss='margin', iterations=600):
     criterion = find_criterion(used_loss)
 
     G.eval()
@@ -280,9 +282,9 @@ def PLG_inversion(args, G, D, T, E, batch_size, targets, lr=2e-2, used_loss='mar
     # Prepare batches for attack
     for i in range(math.ceil(len(targets) / batch_size)):
         z = utils.sample_z(
-            batch_size, args.gen_dim_z, device, args.gen_distribution
+            batch_size, z_dim, device, args.gen_distribution
         )
-        iden = targets[i * batch_size:(i + 1) * batch_size]
+        iden = targets[i * batch_size:(i + 1) * batch_size].to(device)
 
         target_classes_set = set(iden.tolist())
 
@@ -294,10 +296,10 @@ def PLG_inversion(args, G, D, T, E, batch_size, targets, lr=2e-2, used_loss='mar
         optimizer = torch.optim.Adam([z], lr=lr)
 
         for i in range(iterations):
-            fake = G(z, iden)
+            fake = G(z)
 
-            out1 = T(aug_list(fake))[-1]
-            out2 = T(aug_list(fake))[-1]
+            out1 = T(aug_list(fake))[-1].to(device)
+            out2 = T(aug_list(fake))[-1].to(device)
 
             if z.grad is not None:
                 z.grad.data.zero_()
@@ -310,7 +312,7 @@ def PLG_inversion(args, G, D, T, E, batch_size, targets, lr=2e-2, used_loss='mar
 
             if (i + 1) % 100 == 0:
                 with torch.no_grad():
-                    fake_img = G(z.detach(), iden)
+                    fake_img = G(z.detach())
 
                     eval_prob = E(transforms.Resize((112, 112))(fake_img))[-1]
                     eval_iden = torch.argmax(eval_prob, dim=1).view(-1)
@@ -333,7 +335,8 @@ def PLG_inversion(args, G, D, T, E, batch_size, targets, lr=2e-2, used_loss='mar
 
     return torch.concat(z_opt, dim=0)
 
-def RLB_inversion(agent, G, target_model, alpha, z_init, max_episodes, max_step, label):
+
+def RLB_inversion(agent, G, T, alpha, z_init, max_episodes, max_step, label):
     print("Target Label : " + str(label.item()))
     z_opt = []
     for i in range(z_init.shape[0]):
@@ -356,8 +359,8 @@ def RLB_inversion(agent, G, target_model, alpha, z_init, max_episodes, max_step,
                 action_image = G(action.clone().detach().reshape((1, len(action))).cuda()).detach()
 
                 # Calculate the reward.
-                _, state_output = target_model(state_image)
-                _, action_output = target_model(action_image)
+                _, state_output = T(state_image)
+                _, action_output = T(action_image)
                 score1 = float(
                     torch.mean(torch.diag(torch.index_select(torch.log(F.softmax(state_output, dim=-1)).data, 1, y))))
                 score2 = float(
@@ -387,7 +390,7 @@ def RLB_inversion(agent, G, target_model, alpha, z_init, max_episodes, max_step,
 
                 state = torch.from_numpy(state).float()
                 opt_img = G(state).detach()
-                _, opt_output = target_model(opt_img)
+                _, opt_output = T(opt_img)
                 probabilities = F.softmax(opt_output, dim=-1)
                 target_probabilities = probabilities[torch.arange(probabilities.size(0)), y]
                 confidence = float(torch.mean(target_probabilities))
@@ -413,8 +416,8 @@ def gen_points_on_sphere(current_point, points_count, sphere_radius):
     return sphere_points, perturbation_direction
 
 
-def BREP_inversion(z, target_id, targets_single_id, G, target_model, E, attack_params, max_iters_at_radius_before_terminate,
-                         current_iden_dir, used_loss='ce', round_num=0):
+def BREP_inversion(z, target_id, targets_single_id, G, T, E, attack_params, max_iters_at_radius_before_terminate,
+                   current_iden_dir, used_loss='ce', round_num=0):
     criterion = find_criterion(used_loss)
     final_z = []
     start = time.time()
@@ -456,7 +459,7 @@ def BREP_inversion(z, target_id, targets_single_id, G, target_model, E, attack_p
                     'sphere_points_count'], current_sphere_radius)
 
                 # get the predicted labels of the target model on the sphere points
-                new_points_classification = is_target_class(G(new_points), target_id, target_model)
+                new_points_classification = is_target_class(G(new_points), target_id, T)
 
                 # handle case where all(or some percentage) sphere points lie in decision boundary. We increment sphere size
 
@@ -490,13 +493,13 @@ def BREP_inversion(z, target_id, targets_single_id, G, target_model, E, attack_p
                 current_img = G(current_point_new.unsqueeze(0))
 
                 # current_img = G(current_point_new)
-                if is_target_class(current_img, target_id, target_model)[0] == -1:
+                if is_target_class(current_img, target_id, T)[0] == -1:
                     log_file.write("current point is outside target class boundary")
                     break
 
                 current_point = current_point_new
 
-                _, current_loss = decision(current_img, target_model, score=True, criterion=criterion,
+                _, current_loss = decision(current_img, T, score=True, criterion=criterion,
                                            target=targets_single_id)
 
                 # if current_iter % 50 == 0 or (current_iter < 200 and current_iter % 20 == 0):
@@ -525,7 +528,7 @@ def BREP_inversion(z, target_id, targets_single_id, G, target_model, E, attack_p
                 if current_sphere_radius > 16.30:
                     print("Reach maximum radius, break!")
                     break
-            else:               # PPDG-MI setting
+            else:  # PPDG-MI setting
                 if current_sphere_radius > 8.91:
                     print("Reach maximum radius, break!")
                     break

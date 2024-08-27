@@ -22,19 +22,23 @@ parser.add_argument('--num_round', type=int, default=1, help='Description of num
 parser.add_argument('--num_candidates', type=int, default=1000, help='Description of number of candidates')
 parser.add_argument('--target_classes', type=str, default='0-100', help='Description of target classes')
 
-parser.add_argument('--private_data_name', type=str, default='celeba', help='celeba | ffhq | facescrub')
-parser.add_argument('--public_data_name', type=str, default='ffhq', help='celeba | ffhq | facescrub')
-
 # Log and Save interval configuration
 parser.add_argument('--results_root', type=str, default='results',
                     help='Path to results directory. default: results')
-# tune cGAN
-parser.add_argument('--gen_distribution', '-gd', type=str, default='normal',
-                    help='Input noise distribution: normal (default) or uniform.')
 
 # PLG Optimizer settings
+parser.add_argument('--gen_distribution', '-gd', type=str, default='normal',
+                    help='Input noise distribution: normal (default) or uniform.')
+parser.add_argument('--tune_cGAN_lr', type=float, default=0.0002,
+                    help='Initial learning rate of Adam. default: 0.0002')
+parser.add_argument('--beta1', type=float, default=0.0,
+                    help='beta1 (betas[0]) value of Adam. default: 0.0')
+parser.add_argument('--beta2', type=float, default=0.9,
+                    help='beta2 (betas[1]) value of Adam. default: 0.9')
+parser.add_argument('--lr', type=float, default=0.1)
 parser.add_argument('--loss_type', type=str, default='hinge',
                     help='loss function name. hinge (default) or dcgan.')
+parser.add_argument('--inv_loss_weight', type=float, default=0.2)
 parser.add_argument('--relativistic_loss', '-relloss', default=False, action='store_true',
                     help='Apply relativistic loss or not. default: False')
 
@@ -149,7 +153,7 @@ def PLG_attack(args, G, D, target_model, E, targets_single_id, used_loss, iterat
     else:
         print(f"File {final_z_path} does not exist, skipping load.")
         mi_start_time = time.time()
-        opt_z = PLG_inversion(args, G, D, target_model, E, batch_size, targets_single_id, used_loss=used_loss, lr=args.lr, iterations=iterations)
+        opt_z = PLG_inversion(args, G, D, target_model, E, z_dim, batch_size, targets_single_id, used_loss=used_loss, lr=args.lr, iterations=iterations)
         mi_time = time.time() - mi_start_time
         torch.save(opt_z.detach(), final_z_path)
 
@@ -392,7 +396,7 @@ if __name__ == "__main__":
                 if args.improved_flag:
                     G, D = tune_specific_gan(config, G, D, targetnets[0], selected_z, epochs=10)
                 elif args.conditional_flag:
-                    G, D = tune_cgan(args, config, G, D, targetnets[0], selected_z, selected_targets, epoch=500)
+                    G, D = tune_cgan(args, config, G, D, targetnets[0], selected_z, args.inv_loss_weight, args.tune_cGAN_lr, args.beta1, args.beta2, batch_size=64, epoch=500)
                 else:
                     G, D = tune_general_gan(config, G, D, selected_z, epochs=10)
 

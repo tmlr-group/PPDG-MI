@@ -2,6 +2,7 @@ import numpy as np
 import os
 import torch
 from PIL import Image
+
 import utils
 
 
@@ -18,12 +19,16 @@ def sample_from_data(args, device, data_loader):
 
     """
     real, y = next(data_loader)
+    # print(f"Type of 'real': {type(real)}, Type of 'y': {type(y)}")
+    # print(f"First element of 'real': {real[0] if isinstance(real, (list, tuple)) else real}")
+    # print(f"First element of 'y': {y[0] if isinstance(y, (list, tuple)) else y}")
+
     real, y = real.to(device), y.to(device)
 
     return real, y
 
 
-def sample_from_gen(args, device, num_classes, gen):
+def sample_from_gen(args, device, batch_size, gen_dim_z, num_classes, gen):
     """Sample fake images and labels from generator.
 
     Args:
@@ -38,13 +43,13 @@ def sample_from_gen(args, device, num_classes, gen):
     """
 
     z = utils.sample_z(
-        args.batch_size, args.gen_dim_z, device, args.gen_distribution
+        batch_size, gen_dim_z, device, args.gen_distribution
     )
     pseudo_y = utils.sample_pseudo_labels(
-        num_classes, args.batch_size, device
+        num_classes, batch_size, device
     )
 
-    fake = gen(z, pseudo_y)
+    fake = gen(z)
     return fake, pseudo_y, z
 
 

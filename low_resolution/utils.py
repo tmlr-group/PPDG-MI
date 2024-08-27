@@ -10,6 +10,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import losses as L
 import torchvision.utils as tvls
+import numpy as np
 from torchvision import transforms
 from datetime import datetime
 import dataloader
@@ -22,6 +23,7 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 def toogle_grad(model, flag=True):
     for p in model.parameters():
         p.requires_grad = flag
+
 
 class Tee(object):
     def __init__(self, name, mode):
@@ -115,6 +117,7 @@ def save_tensor_images(images, filename, nrow=None, normalize=True):
     else:
         tvls.save_image(images, filename, normalize=normalize, nrow=nrow, padding=0)
 
+
 def save_images(n_iter, count, root, train_image_root, fake, real):
     """Save images (torch.tensor).
 
@@ -142,6 +145,48 @@ def save_images(n_iter, count, root, train_image_root, fake, real):
         real, real_path, nrow=4, normalize=True, scale_each=True
     )
     shutil.copy(real_path, os.path.join(root, 'real_latest.png'))
+
+
+def sample_z(batch_size, dim_z, device, distribution=None):
+    """Sample random noises.
+
+    Args:
+        batch_size (int)
+        dim_z (int)
+        device (torch.device)
+        distribution (str, optional): default is normal
+
+    Returns:
+        torch.FloatTensor or torch.cuda.FloatTensor
+
+    """
+
+    if distribution is None:
+        distribution = 'normal'
+    if distribution == 'normal':
+        return torch.empty(batch_size, dim_z, dtype=torch.float32, device=device).normal_()
+    else:
+        return torch.empty(batch_size, dim_z, dtype=torch.float32, device=device).uniform_()
+
+
+def sample_pseudo_labels(num_classes, batch_size, device):
+    """Sample pseudo-labels.
+
+    Args:
+        num_classes (int): number of classes in the dataset.
+        batch_size (int): size of mini-batch.
+        device (torch.Device): For compatibility.
+
+    Returns:
+        ~torch.LongTensor or torch.cuda.LongTensor.
+
+    """
+
+    pseudo_labels = torch.from_numpy(
+        np.random.randint(low=0, high=num_classes, size=(batch_size))
+    )
+    pseudo_labels = pseudo_labels.type(torch.long).to(device)
+    return pseudo_labels
 
 
 def get_deprocessor():
@@ -205,8 +250,9 @@ def get_augmodel(model_name, nclass, path_T=None, dataset='celeba'):
     model = torch.nn.DataParallel(model).cuda()
     if path_T is not None:
         ckp_T = torch.load(path_T)
-        t=model.load_state_dict(ckp_T['state_dict'], strict=True)
+        t = model.load_state_dict(ckp_T['state_dict'], strict=True)
     return model
+
 
 from collections import OrderedDict
 
@@ -283,23 +329,20 @@ class HLoss(nn.Module):
         b = -1.0 * b.sum()
         return b
 
+
 def find_criterion(used_loss):
     criterion = None
     if used_loss == 'logit_loss':
         criterion = L.nll_loss().to(device)
-        print('criterion:{}'.format(used_loss))
     elif used_loss == 'poincare_loss':
-        criterion = L.poincare_loss().to(device)
-        print('criterion', criterion)
+        criterion = L.poincare_loss()
     elif used_loss == 'margin_loss':
-        criterion = L.max_margin_loss().to(device)
-        print('criterion', criterion)
+        criterion = L.max_margin_loss()
     elif used_loss == 'ce_loss':
-        criterion = nn.CrossEntropyLoss().to(device)
-        print('criterion', criterion)
-    else:
-        print('criterion:{}'.format(used_loss))
+        criterion = L.cross_entropy_loss.to(device)
+    print('criterion:{}'.format(used_loss))
     return criterion
+
 
 def gradient_penalty(x, y, DG):
     # interpolation
@@ -534,10 +577,10 @@ def scores_by_transform(imgs,
     return score
 
 
-def prepare_results_dir(args):
+def prepare_results_dir(args, public_data_name, model):
     """Makedir, init tensorboard if required, save args."""
     root = os.path.join(args.results_root,
-                        args.public_data_name, args.model)
+                        public_data_name, model)
     os.makedirs(root, exist_ok=True)
 
     train_image_root = os.path.join(root, "preview", "train")
@@ -550,6 +593,7 @@ def prepare_results_dir(args):
     args.eval_image_root = eval_image_root
 
     return args
+
 
 def perform_final_selection(z,
                             G,
