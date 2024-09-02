@@ -156,29 +156,27 @@ def get_model(attack_name, classes):
     return T
 
 
-# def get_augmodel(model_name, nclass, path_T=None, dataset='celeba'):
-#     if model_name == "VGG16":
-#         model = VGG16(nclass)
-#     elif model_name == "VGG16_HSIC":
-#         model = VGG16_HSIC(nclass)
-#     elif model_name == "FaceNet":
-#         model = FaceNet(nclass)
-#     elif model_name == "FaceNet64":
-#         model = FaceNet64(nclass)
-#     elif model_name == "IR152":
-#         model = IR152(nclass)
-#     elif model_name == "efficientnet_b0":
-#         model = classify.EfficientNet_b0(nclass)
-#     elif model_name == "efficientnet_b1":
-#         model = classify.EfficientNet_b1(nclass)
-#     elif model_name == "efficientnet_b2":
-#         model = classify.EfficientNet_b2(nclass)
+def get_augmodel(model_name, nclass, path_T=None, dataset='celeba'):
+    if model_name == "VGG16":
+        model = VGG16(nclass)
+    elif model_name == "FaceNet":
+        model = FaceNet(nclass)
+    elif model_name == "FaceNet64":
+        model = FaceNet64(nclass)
+    elif model_name == "IR152":
+        model = IR152(nclass)
+    elif model_name == "efficientnet_b0":
+        model = classify.EfficientNet_b0(nclass)
+    elif model_name == "efficientnet_b1":
+        model = classify.EfficientNet_b1(nclass)
+    elif model_name == "efficientnet_b2":
+        model = classify.EfficientNet_b2(nclass)
 
-#     model = torch.nn.DataParallel(model).cuda()
-#     if path_T is not None:
-#         ckp_T = torch.load(path_T)
-#         t=model.load_state_dict(ckp_T['state_dict'], strict=True)
-#     return model
+    model = torch.nn.DataParallel(model).cuda()
+    if path_T is not None:
+        ckp_T = torch.load(path_T)
+        t=model.load_state_dict(ckp_T['state_dict'], strict=True)
+    return model
 
 from collections import OrderedDict
 
@@ -200,7 +198,6 @@ def get_augmodel(model_name, nclass, path_T=None, dataset='celeba'):
     # Mapping of model names to model constructors
     model_classes = {
         "VGG16": VGG16,
-        "VGG16_HSIC": VGG16_HSIC,
         "FaceNet": FaceNet,
         "FaceNet64": FaceNet64,
         "IR152": IR152,
@@ -513,19 +510,11 @@ def perform_final_selection(z,
     final_z = []
     target_model.eval()
 
-    # if approach.strip() == 'transforms':
     transformation = transforms.Compose([
-        # transformation.RandomResizedCrop(size=(224, 224),
-        #                     scale=(0.5, 0.9),  # (0.9, 1.0), #(0.5, 0.9),
-        #                     ratio=(0.8, 1.2),  # (1.0, 1.0), #(0.8, 1.2),
-        #                     antialias=True),
-
-        # transformation.RandomResizedCrop(size=(224, 224),
-        #                     scale=(0.8, 1.0),
-        #                     ratio=(1.0, 1.0),
-        #                     antialias=True),
-        transforms.RandomHorizontalFlip(0.5)
-        # transformation.RandomHorizontalFlip(0)
+        transforms.RandomResizedCrop(size=(64, 64), scale=(0.8, 1.0), ratio=(1.0, 1.0)),
+        transforms.ColorJitter(brightness=0.2, contrast=0.2),
+        transforms.RandomHorizontalFlip(0.5),
+        transforms.RandomRotation(5)
     ])
 
     for step, target in enumerate(target_values):
@@ -553,5 +542,4 @@ def perform_final_selection(z,
     print(scores[selected_indices])
     final_targets = torch.cat(final_targets, dim=0)
     final_z = torch.cat(final_z, dim=0)
-    # return final_z, final_targets
     return final_z, final_targets

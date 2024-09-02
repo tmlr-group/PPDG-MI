@@ -55,12 +55,9 @@ def find_criterion(used_loss):
     criterion = None
     if used_loss == 'logit_loss':
         criterion = nn.NLLLoss().to(device)
-        print('criterion:{}'.format(used_loss))
-    elif used_loss == 'cel':
+    elif used_loss == 'ce_loss':
         criterion = nn.CrossEntropyLoss().to(device)
-        print('criterion', criterion)
-    else:
-        print('criterion:{}'.format(used_loss))
+    print('criterion:{}'.format(used_loss))
     return criterion
 
 
@@ -357,7 +354,7 @@ def gen_points_on_sphere(current_point, points_count, sphere_radius):
 
 
 def label_only_inversion(z, target_id, targets_single_id, G, target_model, E, attack_params, criterion, max_iters_at_radius_before_terminate,
-                         current_iden_dir, round_num):
+                         current_iden_dir, max_radius, round_num):
     final_z = []
     start = time.time()
 
@@ -467,14 +464,9 @@ def label_only_inversion(z, target_id, targets_single_id, G, target_model, E, at
                 losses.append(current_loss.item())
                 current_iter += 1
 
-            if round_num == 0:  # baseline setting
-                if current_sphere_radius > 16.30:
-                    print("Reach maximum radius, break!")
-                    break
-            else:               # PPDG setting
-                if current_sphere_radius > 8.91:
-                    print("Reach maximum radius, break!")
-                    break
+            if current_sphere_radius > max_radius:  # baseline setting
+                print(f"Reach maximum radius{max_radius}, break!")
+                break
 
         log_file.close()
         final_z.append(current_point.unsqueeze(0))

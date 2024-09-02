@@ -8,10 +8,7 @@
         "name": "ffhq",
         "img_path": "./datasets/celeba/img_align_celeba",        
         "img_gan_path": "./datasets/ffhq/thumbnails128x128",
-        "n_classes":1000,
-        "fid_real_path": "./datasets/celeba/meta/celeba_target_300ids.npy",
-        "KNN_real_path": "./datasets/celeba/meta/fea_target_300ids.npy",
-        "p_reg_path": "./checkpoints/p_reg"
+        "n_classes":1000
     },
 
     "train":{
@@ -30,7 +27,6 @@
         "lr": 0.02,
         "lam": 1.0,
         "same_z":"",
-        "eval_metric": "fid, acc, knn",
         "z_dim": 100
     },
 
