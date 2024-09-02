@@ -17,7 +17,6 @@
                 "batch_size": 64,
                 "z_dim": 100,
                 "epochs": 120,
-                "fine-tune_epoch": 10,
                 "n_critic": 5,
                 "unlabel_weight": 10,
                 "cls_ckpts": "./checkpoints/download/target_model/target_ckp/FaceNet64_88.50.tar"
@@ -26,8 +25,7 @@
                 "lr": 0.0002,
                 "batch_size": 64,
                 "z_dim": 100,
-                "epochs": 120,
-                "fine-tune_epoch": 10,
+                "epochs": 10,
                 "n_critic": 5,
                 "unlabel_weight": 10,
                 "cls_ckpts": "./checkpoints/download/target_model/target_ckp/VGG16_87.10_allclass.tar"
@@ -37,7 +35,6 @@
                 "batch_size": 64,
                 "z_dim": 100,
                 "epochs": 120,
-                "fine-tune_epoch": 10,
                 "n_critic": 5,
                 "unlabel_weight": 10,
                 "cls_ckpts": "./checkpoints/download/target_model/target_ckp/IR152_91.16.tar"

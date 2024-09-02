@@ -166,7 +166,7 @@ def train_specific_gan(cfg):
     dataset, dataloader = utils.init_dataloader(cfg, file_path, cfg[model_name_T]['batch_size'], mode="gan")
 
     # Start Training
-    print("Training specific GAN for %s" % model_name_T)
+    print("Training GAN for %s" % model_name_T)
     utils.print_params(cfg["dataset"], cfg[model_name_T])
 
     G = Generator(cfg[model_name_T]['z_dim'])
@@ -539,8 +539,8 @@ def tune_specific_gan(cfg, generator, discriminator, T, final_z, epochs):
 
     combined_loader = DataLoader(combined_dataset, batch_size=batch_size, shuffle=True)
 
-    # Start Fine-tuning
-    print("Fine-tuning specific GAN for %s" % dataset_name)
+    # Start Training
+    print("Training general GAN for %s" % dataset_name)
     utils.print_params(cfg["dataset"], cfg[model_name])
 
     toogle_grad(generator, True)
@@ -642,8 +642,8 @@ def tune_general_gan(cfg, generator, discriminator, final_z, epochs):
 
     combined_loader = DataLoader(combined_dataset, batch_size=batch_size, shuffle=True)
 
-    # Start Fine-tuning
-    print("Fine-tuning general GAN for %s" % dataset_name)
+    # Start Training
+    print("Training general GAN for %s" % dataset_name)
     utils.print_params(cfg["dataset"], cfg[model_name])
 
     toogle_grad(generator, True)
