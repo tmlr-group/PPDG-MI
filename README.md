@@ -114,7 +114,7 @@ Download the model weights for the experiments at this [cloud drive](https://dri
 
 #### Key Configuration Parameters:
 - **`method`:** Select the attack method. Options are: `gmi`, `kedmi`, `brep`, and `rlb`.
-- **`variant`** (used with `method=gmi/kedmi`): Select the attack variant. Options are: `baseline`, `aug`, `logit`, `margin`, `lomma`, and `poincare`.
+- **`variant`** (used with `method=gmi/kedmi`): Select the attack variant. Options are: `baseline`, `aug`, `logit`, and `lomma`.
 
 #### Iteration Settings:
 - For **GMI / KEDMI / LOM (GMI) / LOM (KEDMI) / LOMMA (GMI) / LOMMA (KEDMI)**:
