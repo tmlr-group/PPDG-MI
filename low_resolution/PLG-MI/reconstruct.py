@@ -548,7 +548,7 @@ if __name__ == "__main__":
     # Load evaluation model
     E = FaceNet(1000)
     E = torch.nn.DataParallel(E).cuda()
-    path_E = 'checkpoints/target_model/target_ckp/FaceNet_95.88.tar'
+    path_E = '..checkpoints/target_model/target_ckp/FaceNet_95.88.tar'
     ckp_E = torch.load(path_E)
     E.load_state_dict(ckp_E['state_dict'], strict=False)
 
@@ -625,7 +625,6 @@ if __name__ == "__main__":
 
             start_time = time.time()
 
-            # G, D = tune_cgan(args, G, D, T, final_z[:50], final_targets[:50], gan_max_iteration=args.tune_iter_times)
             G, D = tune_cgan(args, G, D, T, final_z[:samples_per_target], final_targets[:samples_per_target],
                              gan_max_iteration=args.tune_iter_times)
 

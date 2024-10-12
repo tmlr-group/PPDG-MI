@@ -115,7 +115,7 @@ def iden_loss(T, fake, iden, used_loss, criterion, fea_mean=0, fea_logvar=0, lam
     return Iden_Loss
 
 
-def white_dist_inversion(G, D, T, E, iden, batch_size, num_candidates, lr=2e-2, momentum=0.9, lamda=100,
+def KED_inversion(G, D, T, E, iden, batch_size, num_candidates, lr=2e-2, momentum=0.9, lamda=100,
                          iter_times=1500, clip_range=1.0, improved=False, num_seeds=5,
                          used_loss='cel', prefix='', random_seed=0, save_img_dir='', fea_mean=0,
                          fea_logvar=0, lam=0.1, clipz=False):
@@ -191,7 +191,7 @@ def white_dist_inversion(G, D, T, E, iden, batch_size, num_candidates, lr=2e-2, 
     return reparameterize_batch(mu, log_var, num_candidates)
 
 
-def white_inversion(G, D, T, E, batch_size, z_init, targets, lr=2e-2, momentum=0.9, lamda=100,
+def GMI_inversion(G, D, T, E, batch_size, z_init, targets, lr=2e-2, momentum=0.9, lamda=100,
                     iter_times=1500, clip_range=1, improved=False,
                     used_loss='cel', prefix='', save_img_dir='', fea_mean=0,
                     fea_logvar=0, lam=0.1, istart=0, same_z=''):
@@ -273,7 +273,7 @@ def white_inversion(G, D, T, E, batch_size, z_init, targets, lr=2e-2, momentum=0
     return torch.concat(z_opt, dim=0)
 
 
-def black_inversion(agent, G, target_model, alpha, z_init, batch_size, max_episodes, max_step, label, model_name):
+def RLB_inversion(agent, G, target_model, alpha, z_init, batch_size, max_episodes, max_step, label, model_name):
     print("Target Label : " + str(label.item()))
     z_opt = []
     for i in range(z_init.shape[0]):
@@ -353,7 +353,7 @@ def gen_points_on_sphere(current_point, points_count, sphere_radius):
     return sphere_points, perturbation_direction
 
 
-def label_only_inversion(z, target_id, targets_single_id, G, target_model, E, attack_params, criterion, max_iters_at_radius_before_terminate,
+def BREP_inversion(z, target_id, targets_single_id, G, target_model, E, attack_params, criterion, max_iters_at_radius_before_terminate,
                          current_iden_dir, max_radius, round_num):
     final_z = []
     start = time.time()
@@ -407,10 +407,10 @@ def label_only_inversion(z, target_id, targets_single_id, G, target_model, E, at
                     'sphere_points_count']:  # == attack_params['sphere_points_count']:
                     # save_tensor_images(G(current_point.unsqueeze(0))[0].detach(),
 
-                    # save_tensor_images(G(current_point.unsqueeze(0))[0].detach(),
-                    #                    os.path.join(current_iden_dir,
-                    #                                 "z{}_last_img_of_radius_{:.4f}_iter_{}.png".format(
-                    #                                     i, current_sphere_radius, current_iter)))
+                    save_tensor_images(G(current_point.unsqueeze(0))[0].detach(),
+                                       os.path.join(current_iden_dir,
+                                                    "z{}_last_img_of_radius_{:.4f}_iter_{}.png".format(
+                                                        i, current_sphere_radius, current_iter)))
                     # update the current sphere radius
                     current_sphere_radius = current_sphere_radius * sphere_expansion_coeff
 
@@ -442,9 +442,9 @@ def label_only_inversion(z, target_id, targets_single_id, G, target_model, E, at
                 _, current_loss = decision(current_img, target_model, score=True, criterion=criterion,
                                            target=targets_single_id)
 
-                # if current_iter % 50 == 0 or (current_iter < 200 and current_iter % 20 == 0):
-                #     save_tensor_images(current_img[0].detach(),
-                #                        os.path.join(current_iden_dir, "iter{}.png".format(current_iter)))
+                if current_iter % 50 == 0 or (current_iter < 200 and current_iter % 20 == 0):
+                    save_tensor_images(current_img[0].detach(),
+                                       os.path.join(current_iden_dir, "iter{}.png".format(current_iter)))
 
                 eval_decision = decision_Evaluator(current_img, E)
 
@@ -464,7 +464,7 @@ def label_only_inversion(z, target_id, targets_single_id, G, target_model, E, at
                 losses.append(current_loss.item())
                 current_iter += 1
 
-            if current_sphere_radius > max_radius:  # baseline setting
+            if current_sphere_radius > max_radius:
                 print(f"Reach maximum radius{max_radius}, break!")
                 break
 

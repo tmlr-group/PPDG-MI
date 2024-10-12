@@ -48,7 +48,7 @@ def init_attack_args(cfg):
         args.classid = '0'
 
 
-def white_attack(target_model, z, G, D, E, targets_single_id, used_loss, iterations=2400, round_num=0):
+def white_box_attack(target_model, z, G, D, E, targets_single_id, used_loss, iterations=2400, round_num=0):
     save_dir = f"{prefix}/{current_time}/{target_id:03d}"
     Path(save_dir).mkdir(parents=True, exist_ok=True)
 
@@ -65,7 +65,7 @@ def white_attack(target_model, z, G, D, E, targets_single_id, used_loss, iterati
         print(f"File {final_z_path} does not exist, skipping load.")
         mi_start_time = time.time()
         if args.improved_flag:
-            opt_z = white_dist_inversion(G, D, target_model, E, targets_single_id[:batch_size], batch_size,
+            opt_z = GMI_inversion(G, D, target_model, E, targets_single_id[:batch_size], batch_size,
                                          num_candidates,
                                          used_loss=used_loss,
                                          fea_mean=fea_mean,
@@ -74,7 +74,7 @@ def white_attack(target_model, z, G, D, E, targets_single_id, used_loss, iterati
                                          improved=args.improved_flag,
                                          lam=cfg["attack"]["lam"])
         else:
-            opt_z = white_inversion(G, D, target_model, E, batch_size, z, targets_single_id,
+            opt_z = KED_inversion(G, D, target_model, E, batch_size, z, targets_single_id,
                                     used_loss=used_loss,
                                     fea_mean=fea_mean,
                                     fea_logvar=fea_logvar,
@@ -111,7 +111,7 @@ def white_attack(target_model, z, G, D, E, targets_single_id, used_loss, iterati
 
     return final_z, final_targets, [mi_time, selection_time]
 
-def black_attack(agent, G, target_model, alpha, z, max_episodes, max_step, targets_single_id, round_num=0):
+def black_box_attack(agent, G, target_model, alpha, z, max_episodes, max_step, targets_single_id, round_num=0):
     save_dir = f"{prefix}/{current_time}/{target_id:03d}"
     Path(save_dir).mkdir(parents=True, exist_ok=True)
 
@@ -127,7 +127,7 @@ def black_attack(agent, G, target_model, alpha, z, max_episodes, max_step, targe
     else:
         print(f"File {final_z_path} does not exist, skipping load.")
         mi_start_time = time.time()
-        opt_z = black_inversion(agent, G, target_model, alpha, z, max_episodes, max_step,
+        opt_z = RLB_inversion(agent, G, target_model, alpha, z, max_episodes, max_step,
                                 targets_single_id[0])
         mi_time = time.time() - mi_start_time
 
@@ -174,7 +174,7 @@ def label_only_attack(attack_params, G, target_model, E, z, targets_single_id, t
     else:
         print(f"File {final_z_path} does not exist, skipping load.")
         mi_start_time = time.time()
-        opt_z = label_only_inversion(z, target_id, targets_single_id, G, target_model, E, attack_params, used_loss,
+        opt_z = BREP_inversion(z, target_id, targets_single_id, G, target_model, E, attack_params, used_loss,
                                used_loss, max_iters_at_radius_before_terminate, max_radius, save_dir, round_num)
         mi_time = time.time() - mi_start_time
 
@@ -298,13 +298,13 @@ if __name__ == "__main__":
                 agent = Agent(state_size=z_dim, action_size=z_dim, random_seed=RLB_seed, hidden_size=256,
                               action_prior="uniform")
 
-                final_z, final_targets, time_list = black_attack(agent, G, targetnets[0], alpha, z,
+                final_z, final_targets, time_list = black_box_attack(agent, G, targetnets[0], alpha, z,
                                                                  max_episodes,
                                                                  max_step, targets_single_id,
                                                                  round_num=round)
             else:
                 z = torch.randn(len(targets_single_id), 100).to(device).float()
-                final_z, final_targets, time_list = white_attack(targetnets, z, G, D, E, targets_single_id,
+                final_z, final_targets, time_list = white_box_attack(targetnets, z, G, D, E, targets_single_id,
                                                                  used_loss=args.loss,
                                                                  iterations=iterations,
                                                                  round_num=round)
