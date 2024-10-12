@@ -4,7 +4,7 @@ import os
 import shutil
 import torch
 import torchvision
-
+from torch.utils.data import DataLoader, TensorDataset
 
 class Dict2Args(object):
     """Dict-argparse object converter."""
@@ -256,8 +256,96 @@ def load_optim(checkpoint_path, optim):
     return load_model_optim(checkpoint_path, None, optim)[1]
 
 
-def save_tensor_images(images, filename, nrow=None, normalize=True):
-    if not nrow:
-        torchvision.utils.save_image(images, filename, normalize=normalize, padding=0)
-    else:
-        torchvision.utils.save_image(images, filename, normalize=normalize, nrow=nrow, padding=0)
+def prepare_results_dir(args):
+    """Makedir, init tensorboard if required, save args."""
+    root = os.path.join(args.results_root,
+                        args.public_data_name, args.model)
+    os.makedirs(root, exist_ok=True)
+
+    train_image_root = os.path.join(root, "preview", "train")
+    eval_image_root = os.path.join(root, "preview", "eval")
+    os.makedirs(train_image_root, exist_ok=True)
+    os.makedirs(eval_image_root, exist_ok=True)
+
+    args.results_root = root
+    args.train_image_root = train_image_root
+    args.eval_image_root = eval_image_root
+
+    return args
+
+
+def scores_by_transform(imgs,
+                        targets,
+                        target_model,
+                        transforms,
+                        iterations=1):
+    score = torch.zeros_like(targets, dtype=torch.float32).to(imgs.device)
+
+    with torch.no_grad():
+        for i in range(iterations):
+            imgs_transformed = transforms(imgs)
+            output = target_model(imgs_transformed)[1]
+            prediction_vector = output.softmax(dim=1)
+            score += torch.gather(prediction_vector, 1,
+                                  targets.unsqueeze(1)).squeeze()
+        score = score / iterations
+    return score
+
+
+def perform_final_selection(z,
+                            G,
+                            targets,
+                            target_model,
+                            samples_per_target,
+                            batch_size,
+                            device,
+                            rtpt=None):
+    target_values = set(targets.cpu().tolist())
+    final_targets = []
+    final_z = []
+    target_model.eval()
+
+    transforms = torchvision.transforms.Compose([
+        torchvision.transforms.RandomResizedCrop((64, 64), scale=(0.8, 1.0), ratio=(1.0, 1.0)),
+        torchvision.transforms.ColorJitter(brightness=0.2, contrast=0.2),
+        torchvision.transforms.RandomHorizontalFlip(0.5),
+        torchvision.transforms.RandomRotation(5),
+    ])
+
+    for step, target in enumerate(target_values):
+        mask = torch.where(targets == target, True, False).cpu()
+        z_masked = z[mask]
+        targets_masked = targets[mask]
+
+        candidates_list = []
+        for i in range(0, len(z_masked), batch_size):
+            z_batch = z_masked[i:i + batch_size]
+            targets_batch = targets_masked[i:i + batch_size]
+            candidates_batch = G(z_batch, targets_batch).cpu()
+            candidates_list.append(candidates_batch)
+
+        candidates = torch.cat(candidates_list, dim=0)
+
+        scores = []
+        dataset = TensorDataset(candidates, targets_masked)
+        for imgs, t in DataLoader(dataset, batch_size=batch_size):
+            imgs, t = imgs.to(device), t.to(device)
+
+            scores.append(
+                scores_by_transform(imgs, t, target_model, transforms))
+
+        scores = torch.cat(scores, dim=0).cpu()
+        indices = torch.sort(scores, descending=True).indices
+        selected_indices = indices[:samples_per_target]
+        final_targets.append(targets_masked[selected_indices].cpu())
+        final_z.append(z_masked[selected_indices].cpu())
+
+        if rtpt:
+            rtpt.step(
+                subtitle=f'Sample Selection step {step} of {len(target_values)}'
+            )
+
+    final_targets = torch.cat(final_targets, dim=0).to(device)
+    final_z = torch.cat(final_z, dim=0).to(device)
+    return final_z, final_targets
+
