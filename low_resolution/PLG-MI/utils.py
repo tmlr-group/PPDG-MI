@@ -4,7 +4,16 @@ import os
 import shutil
 import torch
 import torchvision
+import torch.nn.functional as F
 from torch.utils.data import DataLoader, TensorDataset
+from models.generators.resnet64 import ResNetGenerator
+from models.discriminators.snresnet64 import SNResNetProjectionDiscriminator
+from models.classifiers import VGG16, IR152, FaceNet, FaceNet64
+
+def load_json(json_file):
+    with open(json_file) as data_file:
+        data = json.load(data_file)
+    return data
 
 class Dict2Args(object):
     """Dict-argparse object converter."""
@@ -225,22 +234,6 @@ def load_model_optim(checkpoint_path, model=None, optim=None):
         optim.load_state_dict(ckpt['opt'])
     return model, optim
 
-
-def load_model(checkpoint_path, model):
-    """Load trained weight.
-
-    Args:
-        checkpoint_path (str)
-        model (nn.Module)
-
-    Returns:
-        model
-
-    """
-
-    return load_model_optim(checkpoint_path, model, None)[0]
-
-
 def load_optim(checkpoint_path, optim):
     """Load optimizer from checkpoint.
 
@@ -255,6 +248,42 @@ def load_optim(checkpoint_path, optim):
 
     return load_model_optim(checkpoint_path, None, optim)[1]
 
+
+def get_GAN(dataset, gan_model_dir, z_dim, n_classes, device, gen_num_features, gen_bottom_width, gen_distribution, dis_num_features):
+    G = ResNetGenerator(
+        gen_num_features, z_dim, gen_bottom_width,
+        num_classes=n_classes, distribution=gen_distribution
+    )
+
+    D = SNResNetProjectionDiscriminator(dis_num_features, 1000, F.relu).to(device)
+
+    path = os.path.join(gan_model_dir, dataset)
+    path_G = os.path.join(path, "{}_G.tar".format(dataset))
+    path_D = os.path.join(path, "{}_D.tar".format(dataset))
+
+    G = torch.nn.DataParallel(G).to(device)
+    D = torch.nn.DataParallel(D).to(device)
+    ckp_G = torch.load(path_G)
+    G.load_state_dict(ckp_G['state_dict'], strict=True)
+    ckp_D = torch.load(path_D)
+    D.load_state_dict(ckp_D['state_dict'], strict=True)
+
+    return G, D
+
+
+def load_model(model_name, path_T, num_classes=1000):
+    if model_name.startswith("VGG16"):
+        T = VGG16(num_classes)
+    elif model_name.startswith('IR152'):
+        T = IR152(num_classes)
+    elif model_name == "FaceNet64":
+        T = FaceNet64(num_classes)
+    elif model_name == "FaceNet64":
+        T = FaceNet(num_classes)
+    T = torch.nn.DataParallel(T).cuda()
+    ckp_T = torch.load(path_T)
+    T.load_state_dict(ckp_T['state_dict'], strict=True)
+    return T
 
 def prepare_results_dir(args):
     """Makedir, init tensorboard if required, save args."""

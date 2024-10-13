@@ -4,7 +4,7 @@ from evaluation import evaluate_results, write_precision_list
 from pathlib import Path
 import torch
 import os
-from attack import white_dist_inversion, white_inversion, black_inversion, label_only_inversion
+from attack import GMI_inversion, KED_inversion, RLB_inversion, BREP_inversion
 from argparse import ArgumentParser
 from copy import deepcopy
 from SAC import Agent

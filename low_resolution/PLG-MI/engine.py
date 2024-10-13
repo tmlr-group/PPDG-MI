@@ -8,7 +8,7 @@ from torch.utils.data import ConcatDataset
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-def tune_cgan(args, gen, dis, target_model, final_z, final_y, gan_max_iteration=1000):
+def tune_cgan(args, cfg, gen, dis, target_model, final_z, final_y, gan_max_iteration=1000):
     def _noise_adder(img):
         return torch.empty_like(img, dtype=img.dtype).uniform_(0.0, 1 / 256.0) + img
 
@@ -16,6 +16,8 @@ def tune_cgan(args, gen, dis, target_model, final_z, final_y, gan_max_iteration=
         for p in model.parameters():
             p.requires_grad = flag
 
+    args = prepare_results_dir(args)
+    
     # dataset crop setting
     if args.public_data_name == 'celeba':
         re_size = 64
@@ -47,7 +49,7 @@ def tune_cgan(args, gen, dis, target_model, final_z, final_y, gan_max_iteration=
         torchvision.transforms.ToTensor(),
         _noise_adder
     ])
-    public_dataset = FaceDataset(args=args, root=args.public_data_root, transform=my_transform,
+    public_dataset = FaceDataset(args=args, root=cfg["dataset"]["img_gan_path"], transform=my_transform,
                                  data_name=args.public_data_name)
     print(f"public dataset len {len(public_dataset)}")
 
@@ -63,7 +65,7 @@ def tune_cgan(args, gen, dis, target_model, final_z, final_y, gan_max_iteration=
     combined_dataset = ConcatDataset([public_dataset, pseudo_private_dataset])
     print(f"combined dataset len {len(combined_dataset)}\n")
     train_loader = iter(torch.utils.data.DataLoader(
-        combined_dataset, args.batch_size,
+        combined_dataset, cfg["tune"]["batch_size"],
         sampler=InfiniteSamplerWrapper(combined_dataset),
     )
     )
@@ -76,11 +78,11 @@ def tune_cgan(args, gen, dis, target_model, final_z, final_y, gan_max_iteration=
     toogle_grad(gen, True)
     toogle_grad(dis, True)
 
-    opt_gen = torch.optim.Adam(gen.parameters(), args.tune_cGAN_lr, (args.beta1, args.beta2))
-    opt_dis = torch.optim.Adam(dis.parameters(), args.tune_cGAN_lr, (args.beta1, args.beta2))
+    opt_gen = torch.optim.Adam(gen.parameters(), cfg["tune"]["tune_cGAN_lr"], (cfg["tune"]["beta1"], cfg["tune"]["beta2"]))
+    opt_dis = torch.optim.Adam(dis.parameters(), cfg["tune"]["tune_cGAN_lr"], (cfg["tune"]["beta1"], cfg["tune"]["beta2"]))
     # get adversarial loss
-    gen_criterion = L.GenLoss(args.loss_type, args.relativistic_loss)
-    dis_criterion = L.DisLoss(args.loss_type, args.relativistic_loss)
+    gen_criterion = L.GenLoss(cfg["tune"]["loss_type"], args.relativistic_loss)
+    dis_criterion = L.DisLoss(cfg["tune"]["loss_type"], args.relativistic_loss)
 
     # data augmentation module in stage-1 for the generated images
     aug_list = kornia.augmentation.container.ImageSequential(
@@ -89,8 +91,6 @@ def tune_cgan(args, gen, dis, target_model, final_z, final_y, gan_max_iteration=
         kornia.augmentation.RandomHorizontalFlip(),
         kornia.augmentation.RandomRotation(5),
     )
-
-    args = prepare_results_dir(args)
 
     # Training loop
     for n_iter in range(1, gan_max_iteration + 1):
@@ -103,18 +103,18 @@ def tune_cgan(args, gen, dis, target_model, final_z, final_y, gan_max_iteration=
         target_correct = 0
         count = 0
 
-        for i in range(args.n_dis):  # args.ndis=5, Gen update 1 time, Dis update ndis times.
+        for i in range(cfg["tune"]["n_dis"]):  # args.n_dis=5, Gen update 1 time, Dis update ndis times.
             if i == 0:
-                fake, pseudo_y, _ = sample_from_gen(args, device, args.num_classes, gen)
+                fake, pseudo_y, _ = sample_from_gen(args, device, cfg["dataset"]["n_classes"], gen)
                 dis_fake = dis(fake, pseudo_y)
                 # random transformation on the generated images
                 fake_aug = aug_list(fake)
                 # calc the L_inv
-                if args.inv_loss_type == 'ce':
+                if cfg["attack"]["inv_loss_type"] == 'ce':
                     inv_loss = L.cross_entropy_loss(target_model(fake_aug)[-1], pseudo_y)
-                elif args.inv_loss_type == 'margin':
+                elif cfg["attack"]["inv_loss_type"] == 'margin':
                     inv_loss = L.max_margin_loss(target_model(fake_aug)[-1], pseudo_y)
-                elif args.inv_loss_type == 'poincare':
+                elif cfg["attack"]["inv_loss_type"] == 'poincare':
                     inv_loss = L.poincare_loss(target_model(fake_aug)[-1], pseudo_y)
                 # not used
                 if args.relativistic_loss:
@@ -124,7 +124,7 @@ def tune_cgan(args, gen, dis, target_model, final_z, final_y, gan_max_iteration=
                     dis_real = None
                 # calc the loss of G
                 loss_gen = gen_criterion(dis_fake, dis_real)
-                loss_all = loss_gen + inv_loss * args.alpha
+                loss_all = loss_gen + inv_loss * cfg["tune"]["alpha"]
                 # update the G
                 gen.zero_grad()
                 loss_all.backward()
@@ -134,7 +134,7 @@ def tune_cgan(args, gen, dis, target_model, final_z, final_y, gan_max_iteration=
                 cumulative_inv_loss += inv_loss.item()
 
             # generate fake images
-            fake, pseudo_y, _ = sample_from_gen(args, device, args.num_classes, gen)
+            fake, pseudo_y, _ = sample_from_gen(args, device, cfg["dataset"]["n_classes"], gen)
             # sample the real images
             real, y = sample_from_data(args, device, train_loader)
             # calc the loss of D
@@ -155,8 +155,8 @@ def tune_cgan(args, gen, dis, target_model, final_z, final_y, gan_max_iteration=
                 cumulative_target_acc += round(target_correct / count, 4)
 
         # ==================== End of 1 iteration. ====================
-        args.log_interval = 100
-        if n_iter % args.log_interval == 0:
+        log_interval = 20
+        if n_iter % log_interval == 0:
             print(
                 'iteration: {:07d}/{:07d}, loss gen: {:05f}, loss dis {:05f}, inv loss {:05f}, target acc {:04f}'.format(
                     n_iter, gan_max_iteration, _l_g, cumulative_loss_dis, cumulative_inv_loss,
@@ -164,7 +164,7 @@ def tune_cgan(args, gen, dis, target_model, final_z, final_y, gan_max_iteration=
             )
             # Save previews
             utils.save_images(
-                n_iter, n_iter // args.log_interval, args.results_root,
+                n_iter, n_iter // log_interval, args.results_root,
                 args.train_image_root, fake, real
             )
 

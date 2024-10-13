@@ -28,7 +28,7 @@ def sample_from_data(args, device, data_loader):
     return real, y
 
 
-def sample_from_gen(args, device, batch_size, gen_dim_z, num_classes, gen):
+def sample_from_gen(cfg, device, batch_size, gen_dim_z, num_classes, gen):
     """Sample fake images and labels from generator.
 
     Args:
@@ -43,7 +43,7 @@ def sample_from_gen(args, device, batch_size, gen_dim_z, num_classes, gen):
     """
 
     z = utils.sample_z(
-        batch_size, gen_dim_z, device, args.gen_distribution
+        batch_size, gen_dim_z, device, cfg["GAN_configuration"]["gen_distribution"]
     )
     pseudo_y = utils.sample_pseudo_labels(
         num_classes, batch_size, device

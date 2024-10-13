@@ -1,18 +1,15 @@
-import torch, utils
-import torch.nn as nn
+import utils
 from copy import deepcopy
-import losses as L
 from utils import *
 from models.discri import MinibatchDiscriminator, DGWGAN
 from models.generator import Generator
 from models.classify import *
 from torch.utils.data import ConcatDataset, DataLoader
-from dataset import FaceDataset, InfiniteSamplerWrapper, sample_from_data, sample_from_gen
 
 torch.autograd.set_detect_anomaly(True)
 
 
-def test(model, criterion=None, dataloader=None, device='cuda'):
+def test(model, dataloader=None, device='cuda'):
     tf = time.time()
     model.eval()
     loss, cnt, ACC, correct_top5 = 0.0, 0, 0, 0

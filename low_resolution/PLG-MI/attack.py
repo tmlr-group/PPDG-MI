@@ -6,7 +6,7 @@ import losses as L
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-def PLG_inversion(args, G, D, T, E, batch_size, targets, lr=2e-2, MI_iter_times=600):
+def PLG_inversion(args, cfg, G, D, T, E, batch_size, targets, lr=2e-2, MI_iter_times=600):
     G.eval()
     D.eval()
     E.eval()
@@ -45,11 +45,11 @@ def PLG_inversion(args, G, D, T, E, batch_size, targets, lr=2e-2, MI_iter_times=
             if z.grad is not None:
                 z.grad.data.zero_()
 
-            if args.inv_loss_type == 'ce':
+            if cfg["attack"]["inv_loss_type"] == 'ce':
                 inv_loss = L.cross_entropy_loss(out1, iden) + L.cross_entropy_loss(out2, iden)
-            elif args.inv_loss_type == 'margin':
+            elif cfg["attack"]["inv_loss_type"] == 'margin':
                 inv_loss = L.max_margin_loss(out1, iden) + L.max_margin_loss(out2, iden)
-            elif args.inv_loss_type == 'poincare':
+            elif cfg["attack"]["inv_loss_type"] == 'poincare':
                 inv_loss = L.poincare_loss(out1, iden) + L.poincare_loss(out2, iden)
 
             optimizer.zero_grad()

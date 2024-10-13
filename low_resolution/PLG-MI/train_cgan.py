@@ -51,7 +51,7 @@ def prepare_results_dir(args):
 
 
 def get_args():
-    parser = argparse.ArgumentParser(description='Stage-1: Train the Pseudo Label-Guided Conditional GAN')
+    parser = argparse.ArgumentParser(description='Train cGAN')
     # Dataset configuration
     parser.add_argument('--data_root', type=str, help='path to dataset root directory.')
     parser.add_argument('--data_name', type=str, help='celeba | ffhq | facescrub')
@@ -133,13 +133,13 @@ def main():
     print("Target Model:", args.target_model)
     if args.target_model.startswith("VGG16"):
         target_model = VGG16(args.num_classes)
-        target_model_path = 'checkpoints/target_model/VGG16_88.26.tar'
+        target_model_path = '../checkpoints/target_model/VGG16_88.26.tar'
     elif args.target_model.startswith('IR152'):
         target_model = IR152(args.num_classes)
-        target_model_path = 'checkpoints/target_model/IR152_91.16.tar'
+        target_model_path = '../checkpoints/target_model/IR152_91.16.tar'
     elif args.target_model == "FaceNet64":
         target_model = FaceNet64(args.num_classes)
-        target_model_path = 'checkpoints/target_model/FaceNet64_88.50.tar'
+        target_model_path = '../checkpoints/target_model/FaceNet64_88.50.tar'
 
     target_model = torch.nn.DataParallel(target_model).cuda()
     target_model.load_state_dict(torch.load(target_model_path)['state_dict'], strict=False)
@@ -147,7 +147,7 @@ def main():
 
     # load evaluate model
     evaluate_model = FaceNet(args.num_classes)
-    evaluate_model_path = 'checkpoints/evaluate_model/FaceNet_95.88.tar'
+    evaluate_model_path = '../checkpoints/evaluate_model/FaceNet_95.88.tar'
     evaluate_model = torch.nn.DataParallel(evaluate_model).cuda()
     evaluate_model.load_state_dict(torch.load(evaluate_model_path)['state_dict'], strict=False)
     evaluate_model.eval()

@@ -1,0 +1,49 @@
+{
+    "root_path": "./attack_results/",
+    "dataset":{
+        "model_name": "VGG16",
+        "train_file_path": "../datasets/celeba/meta/trainset.txt",
+        "test_file_path": "../datasets/celeba/meta/testset.txt",
+        "gan_file_path": "../datasets/ffhq/meta/ganset_ffhq.txt",
+        "name": "ffhq",
+        "img_path": "./datasets/celeba/img_align_celeba",        
+        "img_gan_path": "./datasets/ffhq/thumbnails128x128",
+        "n_classes":1000
+    },
+
+    "train":{
+        "model_type": "VGG16",
+        "cls_ckpt": "../checkpoints/target_model/target_ckp/VGG16_88.26.tar",
+        "num_seeds": 5,
+        "Nclass": 300,
+        "gan_model_dir": "./checkpoints/GAN",
+        "eval_model": "FaceNet",
+        "eval_dir": "../checkpoints/target_model/target_ckp/FaceNet_95.88.tar"
+        },
+
+    "attack":{
+        "inv_loss_type": "poincare",
+        "lr": 0.1,
+        "lam": 1.0,
+        "alpha":0.2,
+        "z_dim": 100
+    },
+
+    "GAN_configuration":{
+        "gen_num_features": 64,
+        "dis_num_features": 64,
+        "gen_bottom_width": 4,
+        "gen_distribution": "normal",
+        "tune_iter_times": 100
+    },
+
+    "tune":{
+        "tune_cGAN_lr": 0.0002,
+        "beta1": 0.0,
+        "beta2": 0.9,
+        "alpha": 0.2,
+        "batch_size": 64,
+        "n_dis": 5,
+        "loss_type": "hinge"
+    }
+}
