@@ -175,7 +175,8 @@ def label_only_attack(attack_params, G, target_model, E, z, targets_single_id, t
         print(f"File {final_z_path} does not exist, skipping load.")
         mi_start_time = time.time()
         opt_z = BREP_inversion(z, target_id, targets_single_id, G, target_model, E, attack_params, used_loss,
-                               used_loss, max_iters_at_radius_before_terminate, max_radius, save_dir, round_num)
+                            max_iters_at_radius_before_terminate, max_radius, save_dir, round_num)
+
         mi_time = time.time() - mi_start_time
 
     start_time = time.time()

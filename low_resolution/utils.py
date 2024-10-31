@@ -12,6 +12,7 @@ from datetime import datetime
 import dataloader
 from torch.utils.data import ConcatDataset, TensorDataset, DataLoader
 from torch.autograd import grad
+from collections import OrderedDict
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
@@ -175,11 +176,14 @@ def get_augmodel(model_name, nclass, path_T=None, dataset='celeba'):
     model = torch.nn.DataParallel(model).cuda()
     if path_T is not None:
         ckp_T = torch.load(path_T)
+
+        # # Attempt to fix state dict keys
+        # fixed_state_dict = fix_state_dict_keys(ckp_T['state_dict'])
+        # # Load the state dict into the model
+        # model.load_state_dict(fixed_state_dict, strict=True)
+
         t=model.load_state_dict(ckp_T['state_dict'], strict=True)
     return model
-
-from collections import OrderedDict
-
 
 def fix_state_dict_keys(state_dict):
     """
@@ -192,44 +196,6 @@ def fix_state_dict_keys(state_dict):
         new_key = k if k.startswith('module.') else 'module.' + k
         new_state_dict[new_key] = v
     return new_state_dict
-
-
-def get_augmodel(model_name, nclass, path_T=None, dataset='celeba'):
-    # Mapping of model names to model constructors
-    model_classes = {
-        "VGG16": VGG16,
-        "FaceNet": FaceNet,
-        "FaceNet64": FaceNet64,
-        "IR152": IR152,
-        "efficientnet_b0": classify.EfficientNet_b0,
-        "efficientnet_b1": classify.EfficientNet_b1,
-        "efficientnet_b2": classify.EfficientNet_b2,
-    }
-
-    # Instantiate the model
-    if model_name in model_classes:
-        model = model_classes[model_name](nclass)
-    else:
-        raise ValueError(f"Model name {model_name} is not supported.")
-
-    # Wrap the model with DataParallel and move to GPU
-    model = torch.nn.DataParallel(model).cuda()
-
-    # Load checkpoint if provided
-    if path_T is not None:
-        ckp_T = torch.load(path_T)
-        try:
-            # Attempt to fix state dict keys
-            fixed_state_dict = fix_state_dict_keys(ckp_T['state_dict'])
-            # Load the state dict into the model
-            model.load_state_dict(fixed_state_dict, strict=True)
-        except RuntimeError as e:
-            # Handle errors in state dict loading
-            print(f"Failed to load state dictionary: {e}")
-            # Optionally, you might want to raise the error or handle it differently
-            raise e
-
-    return model
 
 
 def log_sum_exp(x, axis=1):
@@ -334,7 +300,7 @@ def get_attack_model(args, args_json, eval_mode=False):
 
     if not eval_mode:
         log_file = "invertion_logs_{}_{}.txt".format(args.loss, now.strftime("%m_%d_%Y_%H_%M_%S"))
-        utils.Tee(os.path.join(args.log_path, log_file), 'w')
+        Tee(os.path.join(args.log_path, log_file), 'w')
 
     n_classes = args_json['dataset']['n_classes']
 
@@ -364,8 +330,7 @@ def get_attack_model(args, args_json, eval_mode=False):
 
         # p_reg
         if args.loss == 'logit_loss':
-            if model_types_[id_] == "IR152" or model_types_[id_] == "VGG16" or model_types_[id_] == "FaceNet64" or \
-                    model_types_[id_] == "VGG16_HSIC":
+            if model_types_[id_] == "IR152" or model_types_[id_] == "VGG16" or model_types_[id_] == "FaceNet64":
                 # target model
                 p_reg = os.path.join(args_json["dataset"]["p_reg_path"], '{}_{}_p_reg.pt'.format(dataset, model_types_[
                     id_]))  # './p_reg/{}_{}_p_reg.pt'.format(dataset,model_types_[id_])

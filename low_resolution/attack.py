@@ -273,7 +273,7 @@ def GMI_inversion(G, D, T, E, batch_size, z_init, targets, lr=2e-2, momentum=0.9
     return torch.concat(z_opt, dim=0)
 
 
-def RLB_inversion(agent, G, target_model, alpha, z_init, batch_size, max_episodes, max_step, label, model_name):
+def RLB_inversion(agent, G, target_model, alpha, z_init, max_episodes, max_step, label):
     print("Target Label : " + str(label.item()))
     z_opt = []
     for i in range(z_init.shape[0]):
@@ -353,8 +353,8 @@ def gen_points_on_sphere(current_point, points_count, sphere_radius):
     return sphere_points, perturbation_direction
 
 
-def BREP_inversion(z, target_id, targets_single_id, G, target_model, E, attack_params, criterion, max_iters_at_radius_before_terminate,
-                         current_iden_dir, max_radius, round_num):
+def BREP_inversion(z, target_id, targets_single_id, G, target_model, E, attack_params, criterion,
+                           max_iters_at_radius_before_terminate, max_radius, current_iden_dir, round_num):
     final_z = []
     start = time.time()
 
@@ -373,11 +373,11 @@ def BREP_inversion(z, target_id, targets_single_id, G, target_model, E, attack_p
         losses = []
 
         if round_num == 0:
-            # default hyper-parameters used in BREPMI. PPDG uses these parameters for baseline attack.
+            # default hyper-parameters used in BREPMI.
             current_sphere_radius = 2.0
             sphere_expansion_coeff = 1.3
         else:
-            # parameters used in our official work. PPDG uses these parameters for vanilla attack.
+            # parameters used in PPDG.
             current_sphere_radius = attack_params['BREP_MI']['current_sphere_radius']
             sphere_expansion_coeff = attack_params['BREP_MI']['sphere_expansion_coeff']
 

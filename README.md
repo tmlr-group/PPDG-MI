@@ -21,7 +21,6 @@ rm --force stylegan2-ada-pytorch/.gitignore
 To download the pre-trained weights, run the following command from the project's root folder or copy the weights into ```stylegan2-ada-pytorch```:
 ```bash
 wget https://nvlabs-fi-cdn.nvidia.com/stylegan2-ada-pytorch/pretrained/ffhq.pkl -P stylegan2-ada-pytorch/
-
 ```
 NVIDIA provides the following pre-trained models: ```ffhq.pkl, metfaces.pkl, afhqcat.pkl, afhqdog.pkl, afhqwild.pkl, cifar10.pkl, brecahad.pkl```. Adjust the command above accordingly. For the training and resolution details, please visit the official repo.
 
@@ -116,33 +115,48 @@ Download the model weights for the experiments at this [cloud drive](https://dri
 - **`method`:** Select the attack method. Options are: `gmi`, `kedmi`, `brep`, and `rlb`.
 - **`variant`** (used with `method=gmi/kedmi`): Select the attack variant. Options are: `baseline`, `aug`, `logit`, and `lomma`.
 
-#### Iteration Settings:
-- For **GMI / KEDMI / LOM (GMI) / LOM (KEDMI) / LOMMA (GMI) / LOMMA (KEDMI)**:
-  - Baseline: `iterations=2400`
-  - PPDG-vanilla: `iterations=1200`
-  
-- For **BREP-MI**:
-  - Baseline: `iterations=1000`
-  - PPDG-vanilla: `iterations=500`
+[//]: # (#### Iteration Settings:)
 
-- For **RLB-MI**:
-  - Baseline: `iterations=10000`
-  - PPDG-vanilla: `iterations=5000`
-  
-- For **PLG-MI**:
-  - Baseline: `iterations=1000`
-  - PPDG-vanilla: `iterations=500`
+[//]: # (- For **GMI / KEDMI / LOM &#40;GMI&#41; / LOM &#40;KEDMI&#41; / LOMMA &#40;GMI&#41; / LOMMA &#40;KEDMI&#41;**:)
+
+[//]: # (  - Baseline: `iterations=2400`)
+
+[//]: # (  - PPDG-vanilla: `iterations=1200`)
+
+[//]: # (  )
+[//]: # (- For **BREP-MI**:)
+
+[//]: # (  - Baseline: `iterations=1000`)
+
+[//]: # (  - PPDG-vanilla: `iterations=500`)
+
+[//]: # ()
+[//]: # (- For **RLB-MI**:)
+
+[//]: # (  - Baseline: `iterations=10000`)
+
+[//]: # (  - PPDG-vanilla: `iterations=5000`)
+
+[//]: # (  )
+[//]: # (- For **PLG-MI**:)
+
+[//]: # (  - Baseline: `iterations=1000`)
+
+[//]: # (  - PPDG-vanilla: `iterations=500`)
   
 ---
 
 #### LOM (GMI) as an example:
-Set `method` as `gmi` and `variant` as `L_logit`, and then run the following:
-* Baseline Attack
-```
-CUDA_VISIBLE_DEVICES=0 python -W ignore  recovery.py --configs=./config/celeba/attacking/celeba.json  --exp_name=LOM_GMI_id0-99  --iterations=2400  --num_round=1  --num_candidates=1000  --target_classes='0-100'
-```
+Set `method` as `gmi` and `variant` as `logit`, and then run the following:
 
-* PPDG-vanilla
+[//]: # (* Baseline Attack)
+[//]: # (```)
+
+[//]: # (CUDA_VISIBLE_DEVICES=0 python -W ignore  recovery.py --configs=./config/celeba/attacking/celeba.json  --exp_name=LOM_GMI_id0-99  --iterations=2400  --num_round=1  --num_candidates=1000  --target_classes='0-100')
+
+[//]: # (```)
+
+[//]: # (* PPDG-vanilla)
 ```
 CUDA_VISIBLE_DEVICES=0 python -W ignore  recovery.py --configs=./config/celeba/attacking/celeba.json  --exp_name=PPDG-vanilla_id0-99  --iterations=1200  --num_round=2  --num_candidates=1000  --target_classes='0-100'
 ```
