@@ -22,7 +22,7 @@
         },
 
     "attack":{
-        "inv_loss_type": "poincare",
+        "inv_loss_type": "margin",
         "lr": 0.1,
         "lam": 1.0,
         "alpha":0.2,
@@ -34,7 +34,7 @@
         "dis_num_features": 64,
         "gen_bottom_width": 4,
         "gen_distribution": "normal",
-        "tune_iter_times": 100
+        "tune_iter_times": 1000
     },
 
     "tune":{

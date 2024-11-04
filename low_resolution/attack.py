@@ -353,8 +353,11 @@ def gen_points_on_sphere(current_point, points_count, sphere_radius):
     return sphere_points, perturbation_direction
 
 
-def BREP_inversion(z, target_id, targets_single_id, G, target_model, E, attack_params, criterion,
-                           max_iters_at_radius_before_terminate, max_radius, current_iden_dir, round_num):
+def BREP_inversion(z, target_id, targets_single_id, G, target_model, E, attack_params, used_loss,
+                   max_iters_at_radius_before_terminate, max_radius, current_sphere_radius, sphere_expansion_coeff,
+                   current_iden_dir):
+
+    criterion = find_criterion(used_loss)
     final_z = []
     start = time.time()
 
@@ -371,15 +374,6 @@ def BREP_inversion(z, target_id, targets_single_id, G, target_model, E, attack_p
         last_iter_when_radius_changed = 0
 
         losses = []
-
-        if round_num == 0:
-            # default hyper-parameters used in BREPMI.
-            current_sphere_radius = 2.0
-            sphere_expansion_coeff = 1.3
-        else:
-            # parameters used in PPDG.
-            current_sphere_radius = attack_params['BREP_MI']['current_sphere_radius']
-            sphere_expansion_coeff = attack_params['BREP_MI']['sphere_expansion_coeff']
 
         last_success_on_eval = False
         # Outer loop handle all sphere radii

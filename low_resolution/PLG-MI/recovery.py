@@ -133,7 +133,7 @@ if __name__ == "__main__":
 
     # Attack Parameters
     num_candidates = args.num_candidates
-    samples_per_target = args.num_candidates // 2
+    samples_per_target = args.num_candidates // 4
     target_classes = args.target_classes
     start, end = map(int, target_classes.split('-'))
     targets = torch.tensor([i for i in range(start, end)])
