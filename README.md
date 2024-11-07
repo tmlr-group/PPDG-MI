@@ -7,7 +7,7 @@
 
 Hi, this is the code for our NeurIPS 2024 paper: *[Pseudo-Private Data Guided Model Inversion Attacks](https://openreview.net/forum?id=pyqPUf36D2)*.
 ![PPDG_vs_Generative_MI](assets/PPDG_vs_Generative_MI.png)
-Overview of Generative Model Inversion framework vs. PPDG framework. PPDG increases the density around high-quality pseudo-private data (i.e., recovered samples through model inversion that exhibit characteristics of the private training data) by fine-tuning the generator.
+**Overview of traditional generative MI framework vs. _pseudo-private data guided_ MI (PPDG-MI) framework.** PPDG-MI leverages pseudo-private data `\hat{\mathbf{x}}` generated during the inversion process, which reveals the characteristics of the actual private data, to fine-tune the generator `\mathrm{G}`. The goal is to enhance the density of `\hat{\mathbf{x}}` under the learned distributional prior `\mathrm{P}(\mathcal{X}_{\text{prior}})`, thereby increasing the probability of sampling actual private data `\mathbf{x}^*` during the inversion process.
 
 # Getting started
 
