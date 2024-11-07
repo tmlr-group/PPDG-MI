@@ -528,12 +528,12 @@ if __name__ == '__main__':
         config.tuneG['tune_steps'] = 150
         config.tuneG['num_inv_points'] = args.num_inv_points
     elif args.measure == 'ct':
-        config.tuneG['inv_steps'] = 300
-        config.tuneG['tune_steps'] = 50
+        config.tuneG['inv_steps'] = 150
+        config.tuneG['tune_steps'] = 25  # 25 < tune_steps < 50, larger one yield better metrics while lower visual quality
         config.tuneG['num_inv_points'] = args.num_inv_points
     else:
         config.tuneG['inv_steps'] = 300
-        config.tuneG['tune_steps'] = 150
+        config.tuneG['tune_steps'] = 150  # 100 < tune_steps < 150
         config.tuneG['num_inv_points'] = args.num_inv_points
 
     # G_blocks_to_train = ['b4', 'b8', 'b16']
