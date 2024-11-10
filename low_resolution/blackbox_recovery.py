@@ -1,12 +1,13 @@
-from engine import tune_specific_gan, tune_general_gan
+from engine import tune_general_gan
 from utils import *
 from evaluation import evaluate_results, write_precision_list
 from pathlib import Path
 import torch
 import os
-from attack import GMI_inversion, KED_inversion
+from attack import RLB_inversion
 from argparse import ArgumentParser
 from copy import deepcopy
+from SAC import Agent
 
 torch.manual_seed(42)
 
@@ -26,28 +27,7 @@ args = parser.parse_args()
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-def init_attack_args(cfg):
-    if cfg["attack"]["method"] =='kedmi':
-        args.improved_flag = True
-        args.clipz = True
-        args.num_seeds = 1
-    else:
-        args.improved_flag = False
-        args.clipz = False
-        args.num_seeds = 5
-
-    if cfg["attack"]["variant"] == 'logit' or cfg["attack"]["variant"] == 'lomma':
-        args.loss = 'logit_loss'
-    else:
-        args.loss = 'ce_loss'
-
-    if cfg["attack"]["variant"] == 'aug' or cfg["attack"]["variant"] == 'lomma':
-        args.classid = '0,1,2,3'
-    else:
-        args.classid = '0'
-
-
-def white_box_attack(target_model, z, G, D, E, targets_single_id, used_loss, iterations=2400, round_num=0):
+def blackbox_attack(agent, G, target_model, alpha, z, max_episodes, max_step, targets_single_id, round_num=0):
     save_dir = f"{prefix}/{current_time}/{target_id:03d}"
     Path(save_dir).mkdir(parents=True, exist_ok=True)
 
@@ -63,33 +43,16 @@ def white_box_attack(target_model, z, G, D, E, targets_single_id, used_loss, ite
     else:
         print(f"File {final_z_path} does not exist, skipping load.")
         mi_start_time = time.time()
-        if args.improved_flag:
-            opt_z = GMI_inversion(G, D, target_model, E, targets_single_id[:batch_size], batch_size,
-                                         num_candidates,
-                                         used_loss=used_loss,
-                                         fea_mean=fea_mean,
-                                         fea_logvar=fea_logvar,
-                                         iter_times=iterations,
-                                         improved=args.improved_flag,
-                                         lam=cfg["attack"]["lam"])
-        else:
-            opt_z = KED_inversion(G, D, target_model, E, batch_size, z, targets_single_id,
-                                    used_loss=used_loss,
-                                    fea_mean=fea_mean,
-                                    fea_logvar=fea_logvar,
-                                    iter_times=iterations,
-                                    improved=args.improved_flag,
-                                    lam=cfg["attack"]["lam"])
-
+        opt_z = RLB_inversion(agent, G, target_model, alpha, z, max_episodes, max_step,
+                                targets_single_id[0])
         mi_time = time.time() - mi_start_time
 
     start_time = time.time()
-
     final_z, final_targets = perform_final_selection(
         opt_z,
         G,
         targets_single_id,
-        target_model[0],
+        target_model,
         samples_per_target=num_candidates,
         device=device,
         batch_size=batch_size,
@@ -113,15 +76,11 @@ def white_box_attack(target_model, z, G, D, E, targets_single_id, used_loss, ite
 
 if __name__ == "__main__":
     cfg = load_json(json_file=args.configs)
-    init_attack_args(cfg=cfg)
 
     attack_method = cfg["attack"]["method"]
 
     # Save dir
-    if args.improved_flag == True:
-        prefix = os.path.join(cfg["root_path"], "kedmi")
-    else:
-        prefix = os.path.join(cfg["root_path"], attack_method)
+    prefix = os.path.join(cfg["root_path"], attack_method)
 
     save_folder = os.path.join("{}_{}".format(cfg["dataset"]["name"], cfg["dataset"]["model_name"]),
                                cfg["attack"]["variant"])
@@ -154,10 +113,12 @@ if __name__ == "__main__":
     model_name = cfg['dataset']['model_name']
     z_dim = cfg['attack']['z_dim']
 
-    if args.improved_flag:
-        mode = "specific"
-    else:
-        mode = "general"
+    max_step = cfg['RLB_MI']['max_step']
+    alpha = cfg['RLB_MI']['alpha']
+    RLB_seed = cfg['RLB_MI']['seed']
+    max_episodes = args.iterations
+
+    mode = "general"
 
     iterations = args.iterations
     num_round = args.num_round
@@ -169,11 +130,14 @@ if __name__ == "__main__":
             print(f"\nAttack target class: [{target_id}] round number: [{round}]")
             targets_single_id = targets[torch.where(targets == target_id)[0]].to(device)
 
-            if attack_method == "gmi" or attack_method == "kedmi":
+            if attack_method == 'rlb':
                 z = torch.randn(len(targets_single_id), 100).to(device).float()
-                final_z, final_targets, time_list = white_box_attack(targetnets, z, G, D, E, targets_single_id,
-                                                                 used_loss=args.loss,
-                                                                 iterations=iterations,
+                agent = Agent(state_size=z_dim, action_size=z_dim, random_seed=RLB_seed, hidden_size=256,
+                              action_prior="uniform")
+
+                final_z, final_targets, time_list = blackbox_attack(agent, G, targetnets[0], alpha, z,
+                                                                 max_episodes,
+                                                                 max_step, targets_single_id,
                                                                  round_num=round)
             else:
                 print("Attack method does not match this python program.")
@@ -191,10 +155,7 @@ if __name__ == "__main__":
                 with open(json_path, 'r') as f:
                     config = json.load(f)
 
-                if args.improved_flag:
-                    G, D = tune_specific_gan(config, G, D, targetnets[0], selected_z, epochs=args.num_epoch)
-                else:
-                    G, D = tune_general_gan(config, G, D, selected_z, epochs=args.num_epoch)
+                G, D = tune_general_gan(config, G, D, selected_z, epochs=args.num_epoch)
 
                 tune_time = time.time() - start_time
 

@@ -27,7 +27,7 @@ args = parser.parse_args()
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-def label_only_attack(attack_params, G, target_model, E, z, targets_single_id, target_id, max_iters_at_radius_before_terminate, max_radius, used_loss, round_num=0):
+def labelonly_attack(attack_params, G, target_model, E, z, targets_single_id, target_id, max_iters_at_radius_before_terminate, max_radius, used_loss, round_num=0):
     save_dir = f"{prefix}/{current_time}/{target_id:03d}"
     Path(save_dir).mkdir(parents=True, exist_ok=True)
 
@@ -151,7 +151,7 @@ if __name__ == "__main__":
                     initial_radius = cfg['BREP_MI']['current_sphere_radius']
                     expansion_coeff = cfg['BREP_MI']['sphere_expansion_coeff']
 
-                final_z, final_targets, time_list = label_only_attack(cfg, G, targetnets[0], E, z,
+                final_z, final_targets, time_list = labelonly_attack(cfg, G, targetnets[0], E, z,
                                                                       targets_single_id, target_id,
                                                                       max_iters_at_radius_before_terminate, max_radius,
                                                                       initial_radius, expansion_coeff,

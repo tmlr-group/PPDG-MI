@@ -143,14 +143,14 @@ Download the model weights for the experiments at this [cloud drive](https://dri
 Set `method` as `gmi` and `variant` as `logit`, and then run the following:
 
 ```
-CUDA_VISIBLE_DEVICES=0 python -W ignore  white_recovery.py --configs=./config/celeba/attacking/celeba.json  --exp_name=PPDG-vanilla_id0-99  --iterations=1200  --num_round=2  --num_candidates=1000  --target_classes='0-100'
+CUDA_VISIBLE_DEVICES=0 python -W ignore  whitebox_recovery.py --configs=./config/celeba/attacking/celeba.json  --exp_name=PPDG-vanilla_id0-99  --iterations=1200  --num_round=2  --num_candidates=1000  --target_classes='0-100'
 ```
 
 - LOM (KEDMI):
 Set `method` as `kedmi` and `variant` as `logit`, and then run the following:
 
 ```
-CUDA_VISIBLE_DEVICES=0 python -W ignore  white_recovery.py --configs=./config/celeba/attacking/celeba.json  --exp_name=PPDG-vanilla_id0-99  --iterations=1200  --num_round=2  --num_candidates=1000  --target_classes='0-100'
+CUDA_VISIBLE_DEVICES=0 python -W ignore  whitebox_recovery.py --configs=./config/celeba/attacking/celeba.json  --exp_name=PPDG-vanilla_id0-99  --iterations=1200  --num_round=2  --num_candidates=1000  --target_classes='0-100'
 ```
 
 - PLGMI:
@@ -162,18 +162,18 @@ CUDA_VISIBLE_DEVICES=0 python -W ignore  recovery.py  --model=VGG16  --iteration
 Set `method` as `rlb` and then run the following:
 
 ```
-CUDA_VISIBLE_DEVICES=0 python -W ignore  black_recovery.py --configs=./config/celeba/attacking/celeba.json  --exp_name=PPDG-vanilla_id0-9  --iterations=10000  --num_round=2  --num_candidates=1000  --target_classes='0-10'
+CUDA_VISIBLE_DEVICES=0 python -W ignore  blackbox_recovery.py --configs=./config/celeba/attacking/celeba.json  --exp_name=PPDG-vanilla_id0-9  --iterations=10000  --num_round=2  --num_candidates=1000  --target_classes='0-10'
 ```
 
 - BREPMI:
 Set `method` as `brep` and then run the followings:
 
 ```
-CUDA_VISIBLE_DEVICES=0 python -W ignore  label_only_recovery.py --configs=./config/celeba/attacking/celeba.json  --exp_name=baseline_id0-9  --iterations=1000  --num_round=1  --num_candidates=1000  --target_classes='0-10  --max_radius=16.3'
+CUDA_VISIBLE_DEVICES=0 python -W ignore  labelonly_recovery.py --configs=./config/celeba/attacking/celeba.json  --exp_name=baseline_id0-9  --iterations=1000  --num_round=1  --num_candidates=1000  --target_classes='0-10  --max_radius=16.3'
 ```
 
 ```
-CUDA_VISIBLE_DEVICES=0 python -W ignore  label_only_recovery.py --configs=./config/celeba/attacking/celeba.json  --exp_name=PPDG-vanilla_id0-9  --iterations=1000  --num_round=2  --num_candidates=1000  --target_classes='0-10  --max_radius=9.0'
+CUDA_VISIBLE_DEVICES=0 python -W ignore  labelonly_recovery.py --configs=./config/celeba/attacking/celeba.json  --exp_name=PPDG-vanilla_id0-9  --iterations=1000  --num_round=2  --num_candidates=1000  --target_classes='0-10  --max_radius=9.0'
 ```
 
 ---
