@@ -2,7 +2,7 @@
 <p align="center">
     <a href="https://openreview.net/forum?id=pyqPUf36D2"><img src="https://img.shields.io/badge/OpenReview-red" alt="Paper"></a>
     <a href="https://github.com/AlanPeng0897/PPDG-MI"><img src="https://img.shields.io/badge/-Github-grey?logo=github" alt="Github"></a>
-    <a href="https://openreview.net/forum?id=pyqPUf36D2"> <img src="https://img.shields.io/badge/NeurIPS'38-blue" alt="License"> </a>
+    <a href="https://openreview.net/forum?id=pyqPUf36D2"> <img src="https://img.shields.io/badge/NeurIPS'24-blue" alt="License"> </a>
 </p>
 
 Hi, this is the code for our NeurIPS 2024 paper: *[Pseudo-Private Data Guided Model Inversion Attacks](https://openreview.net/forum?id=pyqPUf36D2)*.
