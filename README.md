@@ -1,6 +1,5 @@
 <h1 align="center">Pseudo-Private Data Guided Model Inversion Attacks</h1>
 <p align="center">
-    <a href="https://openreview.net/forum?id=pyqPUf36D2"><img src="https://img.shields.io/badge/OpenReview-red" alt="Paper"></a>
     <a href="https://github.com/AlanPeng0897/PPDG-MI"><img src="https://img.shields.io/badge/-Github-grey?logo=github" alt="Github"></a>
     <a href="https://openreview.net/forum?id=pyqPUf36D2"> <img src="https://img.shields.io/badge/NeurIPS'24-blue" alt="License"> </a>
 </p>
